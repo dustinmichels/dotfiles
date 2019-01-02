@@ -1,18 +1,22 @@
 [user]
-        name = Dustin Michels
-        email = dustin7538@gmail.com
+	name = Dustin Michels
+	email = dustin7538@gmail.com
 [core]
-        editor = vim
+	editor = vim
+	excludesfile = /Users/dustymichels/.gitignore_global
+[credential]
+	helper = osxkeychain
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
 [alias]
         ls = log --graph --abbrev-commit --decorate --color=always --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) - %C(dim red)%an%C(reset)%C(bold yellow)%d%C(reset)' --all
-        last = log -1 HEAD
-        lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
-        unstage = reset HEAD --
-        co = checkout
-        br = branch
-        ci = commit
-        st = status 
-[credential]
-        helper = cache
-[color]
-        ui = true
+	last = log -1 HEAD
+	co = checkout
+	br = branch
+	ci = commit
+	st = status
+	unstage = reset HEAD --
+
