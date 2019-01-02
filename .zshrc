@@ -3,6 +3,9 @@ export TERM="xterm-256color"
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
+# rbenv
+eval "$(rbenv init -)"
+
 # Path to Brew
 export PATH="/usr/local/Cellar:$PATH"
 
@@ -23,25 +26,25 @@ fi
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
-# ZSH_THEME="agnoster"
+ZSH_THEME="avit"
 
 ##################################
 # POWERLEVEL9K STUFF
 
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir rbenv vcs anaconda)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
+# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir rbenv nvm vcs anaconda)
+# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
 
-POWERLEVEL9K_VIRTUALENV_BACKGROUND="white"
-POWERLEVEL9K_ANACONDA_BACKGROUND="white"
+# POWERLEVEL9K_VIRTUALENV_BACKGROUND="white"
+# POWERLEVEL9K_ANACONDA_BACKGROUND="white"
 
-POWERLEVEL9K_MODE='awesome-patched'
-POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+# POWERLEVEL9K_MODE='awesome-patched'
+# POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 
-POWERLEVEL9K_HOME_ICON="\ue17e"
+# POWERLEVEL9K_HOME_ICON="\ue17e"
 
-export DEFAULT_USER="$USER"
+# export DEFAULT_USER="$USER"
 
-ZSH_THEME="powerlevel9k/powerlevel9k"
+# ZSH_THEME="powerlevel9k/powerlevel9k"
 ##################################
 
 # Uncomment the following line to use case-sensitive completion.
@@ -119,5 +122,16 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# eval "$(rbenv init -)"
+
 alias pc="open -a /Applications/PyCharm.app/Contents/MacOS/pycharm"
-eval $(thefuck --alias)
+
+# eval $(thefuck --alias)
+
+# added by travis gem
+[ -f /Users/dustymichels/.travis/travis.sh ] && source /Users/dustymichels/.travis/travis.sh
+function gi() { curl -L -s https://www.gitignore.io/api/$@ ;}
+
+# OPAM configuration
+. /Users/dustymichels/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+
