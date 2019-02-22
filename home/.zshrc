@@ -1,35 +1,28 @@
-# export TERM="xterm-256color"
-
 # If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+#export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dustinmichels/.oh-my-zsh"
+
+# -------PATH---------
+# Gravity
+export PATH=$PATH:/Users/dustinmichels/development/gravity
+
+# Flutter
+export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
+
+# Miniconda3
+export PATH=/Users/dustinmichels/miniconda3/bin:$PATH
+
+typeset -U PATH
+# --------------------
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
+# ZSH_THEME="avit"
 ZSH_THEME="avit"
-
-########################################
-#----------POWERLEVEL9K STUFF----------#
-
-# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir rbenv nvm vcs anaconda)
-# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
-
-# POWERLEVEL9K_VIRTUALENV_BACKGROUND="white"
-# POWERLEVEL9K_ANACONDA_BACKGROUND="white"
-
-# POWERLEVEL9K_MODE='awesome-patched'
-# POWERLEVEL9K_PROMPT_ON_NEWLINE=true
-
-# POWERLEVEL9K_HOME_ICON="\ue17e"
-
-# export DEFAULT_USER="$USER"
-
-# ZSH_THEME="powerlevel9k/powerlevel9k"
-########################################
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -83,12 +76,13 @@ ZSH_THEME="avit"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+plugins=(
+  git
+)
 
 source $ZSH/oh-my-zsh.sh
 
-########################################
-#---------User configuration-----------#
+# User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -116,4 +110,3 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-########################################
