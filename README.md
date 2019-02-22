@@ -4,7 +4,7 @@ Some of my customized configuration files
 
 ## Setup new macbook
 
-### Install programs
+### Install key programs
 
 1. Install [iterm2](https://www.iterm2.com/) as terminal replacement.
 
@@ -30,14 +30,45 @@ Some of my customized configuration files
 
    - Navigate to “Preferences > Profiles > PROFILE >Command > Send text at start” and set it to:
 
-   ```plaintext
+   ```text
    tmux ls && read tmux_session && tmux attach -t ${tmux_session:-default} || tmux new -s ${tmux_session:-default}
    ```
 
    - Also set color preset to "Pastel (Dark Background)"
+
+6. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+   - Install [bash installer](https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh)
+
+   ```bash
+   cd ~/Downloads
+   bash Miniconda3-latest-MacOSX-x86_64.sh
+   ```
 
 ### Copy dotfiles
 
 ```bash
 cp -R home/. $HOME/
 ```
+
+## Other Programs
+
+### VS Code
+
+- Install extensions
+
+  - Prettier
+  - Material Theme
+  - Material Icon Theme
+  - Python
+  - Django
+
+- Settings
+
+  - Code > Preferences > Settings [⌘ ,]
+  - Paste `vscode/settings.json`
+
+- Keybindings
+
+  - File > Preferences > Keyboard Shortcuts [⌘ K, ⌘ S]
+  - Paste `vscode/keybindings.json`
