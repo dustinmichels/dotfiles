@@ -1,0 +1,1 @@
+cp -R home/. $HOME/

@@ -1,35 +1,19 @@
-export TERM="xterm-256color"
+# export TERM="xterm-256color"
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
-# rbenv
-eval "$(rbenv init -)"
-
-# Path to Brew
-export PATH="/usr/local/Cellar:$PATH"
-
 # Path to your oh-my-zsh installation.
-export ZSH=/Users/dustymichels/.oh-my-zsh
+export ZSH="/Users/dustinmichels/.oh-my-zsh"
 
-# Path to Julia
-export PATH="/Applications/Julia-0.6.app/Contents/Resources/julia/bin:$PATH"
-
-# Path to Miniconda
-export PATH="/Users/dustymichels/miniconda3/bin:$PATH"
-
-# Add GHC 7.8.4 to the PATH, via http://ghcformacosx.github.io/
-export GHC_DOT_APP="/Applications/ghc-7.8.4.app"
-if [[ -d "$GHC_DOT_APP" ]]; then
-  export PATH="${HOME}/.cabal/bin:${GHC_DOT_APP}/Contents/bin:${PATH}"
-fi
-
-# Set name of the theme to load. Optionally, if you set this to "random"
+# Set name of the theme to load --- if set to "random", it will
+# load a random theme each time oh-my-zsh is loaded, in which case,
+# to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
 ZSH_THEME="avit"
 
-##################################
-# POWERLEVEL9K STUFF
+########################################
+#----------POWERLEVEL9K STUFF----------#
 
 # POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir rbenv nvm vcs anaconda)
 # POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
@@ -45,13 +29,19 @@ ZSH_THEME="avit"
 # export DEFAULT_USER="$USER"
 
 # ZSH_THEME="powerlevel9k/powerlevel9k"
-##################################
+########################################
+
+# Set list of themes to pick from when loading at random
+# Setting this variable when ZSH_THEME=random will cause zsh to load
+# a theme from this variable instead of looking in ~/.oh-my-zsh/themes/
+# If set to an empty array, this variable will have no effect.
+# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
 
-# Uncomment the following line to use hyphen-insensitive completion. Case
-# sensitive completion must be off. _ and - will be interchangeable.
+# Uncomment the following line to use hyphen-insensitive completion.
+# Case-sensitive completion must be off. _ and - will be interchangeable.
 # HYPHEN_INSENSITIVE="true"
 
 # Uncomment the following line to disable bi-weekly auto-update checks.
@@ -79,13 +69,17 @@ ZSH_THEME="avit"
 
 # Uncomment the following line if you want to change the command execution time
 # stamp shown in the history command output.
-# The optional three formats: "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# You can set one of the optional three formats:
+# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# or set a custom format using the strftime function format specifications,
+# see 'man strftime' for details.
 # HIST_STAMPS="mm/dd/yyyy"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
 
-# Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
+# Which plugins would you like to load?
+# Standard plugins can be found in ~/.oh-my-zsh/plugins/*
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
@@ -93,7 +87,8 @@ plugins=(git)
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
+########################################
+#---------User configuration-----------#
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -121,17 +116,4 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# eval "$(rbenv init -)"
-
-alias pc="open -a /Applications/PyCharm.app/Contents/MacOS/pycharm"
-
-# eval $(thefuck --alias)
-
-# added by travis gem
-[ -f /Users/dustymichels/.travis/travis.sh ] && source /Users/dustymichels/.travis/travis.sh
-function gi() { curl -L -s https://www.gitignore.io/api/$@ ;}
-
-# OPAM configuration
-. /Users/dustymichels/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
-
+########################################
