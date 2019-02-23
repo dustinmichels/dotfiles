@@ -3,17 +3,28 @@
   "workbench.iconTheme": "material-icon-theme",
 
   "terminal.integrated.shell.osx": "/bin/zsh",
+  "terminal.integrated.fontFamily": "'Hack Nerd Font'",
+
   "editor.formatOnSave": true,
   "editor.detectIndentation": false,
 
   "files.exclude": {
     "**/__pycache__": true
   },
-
   "files.associations": {
     "**/templates/*.html": "django-html",
     "**/templates/*": "django-txt",
     "**/requirements{/**,*}.{txt,in}": "pip-requirements",
     "*.swcrc": "json"
-  }
+  },
+
+  "python.linting.pylintPath": "/Users/dustinmichels/miniconda3/bin/pylint",
+  "python.formatting.autopep8Path": "/Users/dustinmichels/miniconda3/bin/autopep8",
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyPath": "/Users/dustinmichels/miniconda3/bin/mypy",
+
+  "sync.gist": "9dd8c959177b670e611aa758a1e6e219",
+  "sync.autoUpload": true,
+  "sync.autoDownload": true,
+  "sync.quietSync": false
 }

@@ -1,34 +1,56 @@
+# ----------
+### PATH ###
+
 # If you come from bash you might have to change your $PATH.
 #export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dustinmichels/.oh-my-zsh"
 
-# -------PATH---------
-# Gravity
-export PATH=$PATH:/Users/dustinmichels/development/gravity
+# Miniconda3
+export PATH=/Users/dustinmichels/miniconda3/bin:$PATH
 
 # Flutter
 export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
 
-# Miniconda3
-export PATH=/Users/dustinmichels/miniconda3/bin:$PATH
 
-typeset -U PATH
-# --------------------
+# -----------
+### THEME ###
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
 # ZSH_THEME="avit"
-ZSH_THEME="avit"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
 # a theme from this variable instead of looking in ~/.oh-my-zsh/themes/
 # If set to an empty array, this variable will have no effect.
 # ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+
+# *************************
+#~~ POWERLEVEL9K STUFF ~~#
+
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir rbenv vcs anaconda)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
+
+POWERLEVEL9K_VIRTUALENV_BACKGROUND="green"
+POWERLEVEL9K_ANACONDA_BACKGROUND="green"
+
+POWERLEVEL9K_MODE='nerdfont-complete'
+POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+
+POWERLEVEL9K_HOME_ICON='\uf06c'
+
+export DEFAULT_USER="$USER"
+
+ZSH_THEME="powerlevel9k/powerlevel9k"
+# *************************
+
+
+# ------------
+### CONFIG ###
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
@@ -82,7 +104,9 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
+
+# ------------------------
+### User configuration ###
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -110,3 +134,20 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/dustinmichels/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/dustinmichels/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/Users/dustinmichels/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/dustinmichels/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+typeset -U PATH
