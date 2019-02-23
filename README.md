@@ -2,9 +2,9 @@
 
 Some of my customized configuration files
 
-## Setup new macbook
+## Setting up Terminal Land
 
-### Install key programs
+### Install Programs
 
 1. Install [iterm2](https://www.iterm2.com/) as terminal replacement.
 
@@ -20,23 +20,34 @@ Some of my customized configuration files
    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
    ```
 
-4. Install tmux with brew.
+4. Install [tmux](https://github.com/tmux/tmux) using Homebrew.
 
    ```bash
    brew install tmux
    ```
 
-5. Add tmux to [iterm2 profile](https://medium.com/@sasom/auto-starting-tmux-in-iterm2-4276182d452a).
+5. Install Hack Nerd Font (which includes icons)
 
-   - Navigate to “Preferences > Profiles > PROFILE >Command > Send text at start” and set it to:
-
-   ```text
-   tmux ls && read tmux_session && tmux attach -t ${tmux_session:-default} || tmux new -s ${tmux_session:-default}
+   ```bash
+   brew tap caskroom/fonts
+   brew cask install font-hack-nerd-font
    ```
 
-   - Also set color preset to "Pastel (Dark Background)"
+6. Customize Iterm2
 
-6. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+   - Launch [tmux automatically](https://medium.com/@sasom/auto-starting-tmux-in-iterm2-4276182d452a).
+
+     - Navigate to “Preferences > Profiles > PROFILE >Command > Send text at start” and set it to:
+
+     ```text
+     tmux ls && read tmux_session && tmux attach -t ${tmux_session:-default} || tmux new -s ${tmux_session:-default}
+     ```
+
+   - Set font to "Hack Regular Nerd Font Complete"
+
+   - Set color preset to "Tango Dark"
+
+7. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
    - Install [bash installer](https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh)
 
@@ -51,7 +62,9 @@ Some of my customized configuration files
 cp -R home/. $HOME/
 ```
 
-## Other Programs
+---
+
+## More Programs
 
 ### VS Code
 
