@@ -32,8 +32,8 @@ export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
 # *************************
 #~~ POWERLEVEL9K STUFF ~~#
 
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs aws rbenv virtualenv anaconda)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status root_indicator background_jobs)
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time background_jobs root_indicator)
 
 POWERLEVEL9K_VIRTUALENV_BACKGROUND="grey"
 POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_COLOR="green"
