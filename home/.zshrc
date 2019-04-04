@@ -13,7 +13,6 @@ export PATH=/Users/dustinmichels/miniconda3/bin:$PATH
 # Flutter
 export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
 
-
 # -----------
 ### THEME ###
 
@@ -32,7 +31,7 @@ export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
 # *************************
 #~~ POWERLEVEL9K STUFF ~~#
 
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda)
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda nvm)
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time background_jobs root_indicator)
 
 POWERLEVEL9K_VIRTUALENV_BACKGROUND="grey"
@@ -46,11 +45,12 @@ POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 
 POWERLEVEL9K_HOME_ICON='\uf06c'
 
+POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$'\uE0B8' # angly
+
 export DEFAULT_USER="$USER"
 
 ZSH_THEME="powerlevel9k/powerlevel9k"
 # *************************
-
 
 # ------------
 ### CONFIG ###
@@ -75,10 +75,10 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # DISABLE_AUTO_TITLE="true"
 
 # Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
+COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
@@ -102,11 +102,10 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-  git
+    git
 )
 
 source $ZSH/oh-my-zsh.sh
-
 
 # ------------------------
 ### User configuration ###
@@ -140,7 +139,7 @@ source $ZSH/oh-my-zsh.sh
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/dustinmichels/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+__conda_setup="$('/Users/dustinmichels/miniconda3/bin/conda' 'shell.zsh' 'hook' 2>/dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
@@ -153,4 +152,9 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
+# nvm
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+
+# cleanup path
 typeset -U PATH

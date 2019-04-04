@@ -85,3 +85,7 @@ cp -R home/. $HOME/
 
   - File > Preferences > Keyboard Shortcuts [⌘ K, ⌘ S]
   - Paste `vscode/keybindings.json`
+
+```
+
+```
