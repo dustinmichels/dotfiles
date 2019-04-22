@@ -39,4 +39,5 @@ mas "Numbers", id: 409203825
 mas "Pages", id: 409201541
 
 mas "Moom", id: 419330170
+mas "Pocket", id: 568494494
 mas "Xcode", id: 497799835
