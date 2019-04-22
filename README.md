@@ -20,20 +20,13 @@ Some of my customized configuration files
    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
    ```
 
-4. Install [tmux](https://github.com/tmux/tmux) using Homebrew.
+4. Install stuff from brewfile
 
    ```bash
-   brew install tmux
+   brew bundle
    ```
 
-5. Install Hack Nerd Font (which includes icons)
-
-   ```bash
-   brew tap caskroom/fonts
-   brew cask install font-hack-nerd-font
-   ```
-
-6. Customize Iterm2
+5. Customize Iterm2
 
    - Launch [tmux automatically](https://medium.com/@sasom/auto-starting-tmux-in-iterm2-4276182d452a).
 
@@ -45,9 +38,9 @@ Some of my customized configuration files
 
    - Set font to "Hack Regular Nerd Font Complete"
 
-   - Set color preset to "Tango Dark"
+   - Set color preset to "Tango Dark" (or Snazzy)
 
-7. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+6. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
    - Install [bash installer](https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh)
 
@@ -60,32 +53,4 @@ Some of my customized configuration files
 
 ```bash
 cp -R home/. $HOME/
-```
-
----
-
-## More Programs
-
-### VS Code
-
-- Install extensions
-
-  - Prettier
-  - Material Theme
-  - Material Icon Theme
-  - Python
-  - Django
-
-- Settings
-
-  - Code > Preferences > Settings [⌘ ,]
-  - Paste `vscode/settings.json`
-
-- Keybindings
-
-  - File > Preferences > Keyboard Shortcuts [⌘ K, ⌘ S]
-  - Paste `vscode/keybindings.json`
-
-```
-
 ```
