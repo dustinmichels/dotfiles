@@ -23,7 +23,7 @@ Some of my customized configuration files
 4. Install stuff from brewfile
 
    ```bash
-   brew bundle
+   brew bundle install
    ```
 
 5. Customize Iterm2
@@ -38,7 +38,7 @@ Some of my customized configuration files
 
    - Set font to "Hack Regular Nerd Font Complete"
 
-   - Set color preset to "Tango Dark" (or Snazzy)
+   - Set color preset to "Tango Dark" (or Snazzy). Download more color schemes: https://iterm2colorschemes.com/
 
 6. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
@@ -54,3 +54,19 @@ Some of my customized configuration files
 ```bash
 cp -R home/. $HOME/
 ```
+
+### Global node/npm
+
+```bash
+# npm
+npm install -g @google/clasp typescript
+
+# yarn
+yarn global add @vue/cli eslint
+```
+
+### Resources
+
+- [mas-cli/mas](https://github.com/mas-cli/mas)
+
+- [homebrew/homebrew-bundle](https://github.com/Homebrew/homebrew-bundle)
