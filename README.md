@@ -12,6 +12,9 @@ Some of my customized configuration files
 
    ```bash
    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+
+   # add autosuggestion plugin
+   git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
    ```
 
 3. Install [homebrew](https://brew.sh/) package manager.
@@ -38,7 +41,7 @@ Some of my customized configuration files
 
    - Set font to "Hack Regular Nerd Font Complete"
 
-   - Set color preset to "Tango Dark" (or Snazzy). Download more color schemes: https://iterm2colorschemes.com/
+   - Set color preset to "Tango Dark" (or Snazzy). Download more color schemes [here](https://iterm2colorschemes.com/)
 
 6. Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
@@ -53,6 +56,9 @@ Some of my customized configuration files
 
 ```bash
 cp -R home/. $HOME/
+
+# or run:
+./setup.sh
 ```
 
 ### Global node/npm

@@ -5,6 +5,7 @@ tap "homebrew/cask"
 tap "homebrew/core"
 tap "homebrew/services"
 tap "sambadevi/powerlevel9k"
+tap "buo/cask-upgrade"
 
 brew "ctags"
 brew "dart-lang/dart/dart"
