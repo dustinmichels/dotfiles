@@ -7,6 +7,7 @@ tap "homebrew/services"
 tap "sambadevi/powerlevel9k"
 tap "buo/cask-upgrade"
 
+brew "brew-cask-completion"
 brew "ctags"
 brew "dart-lang/dart/dart"
 brew "git"
