@@ -12,7 +12,7 @@
 	process = git-lfs filter-process
 	required = true
 [alias]
-    ls = log --graph --abbrev-commit --decorate --color=always --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) - %C(dim red)%an%C(reset)%C(bold yellow)%d%C(reset)' --all
+	ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
 	last = log -1 HEAD
 	co = checkout
 	br = branch
