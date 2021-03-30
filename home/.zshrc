@@ -16,30 +16,30 @@ export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
 # -----------
 ### THEME ###
 
-# ZSH_THEME="avit"
+ZSH_THEME="robbyrussell"
 
 # *************************
 #~~ POWERLEVEL9K STUFF ~~#
 
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda nvm)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time background_jobs root_indicator)
+# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda nvm)
+# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time background_jobs root_indicator)
 
-POWERLEVEL9K_VIRTUALENV_BACKGROUND="grey"
-POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_COLOR="green"
+# POWERLEVEL9K_VIRTUALENV_BACKGROUND="grey"
+# POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_COLOR="green"
 
-POWERLEVEL9K_ANACONDA_BACKGROUND="grey"
-POWERLEVEL9K_ANACONDA_VISUAL_IDENTIFIER_COLOR="green"
+# POWERLEVEL9K_ANACONDA_BACKGROUND="grey"
+# POWERLEVEL9K_ANACONDA_VISUAL_IDENTIFIER_COLOR="green"
 
-POWERLEVEL9K_MODE='nerdfont-complete'
-POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+# POWERLEVEL9K_MODE='nerdfont-complete'
+# POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 
-POWERLEVEL9K_HOME_ICON='\uf06c'
+# POWERLEVEL9K_HOME_ICON='\uf06c'
 
-POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$'\uE0B8' # angly
+# POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$'\uE0B8' # angly
 
-export DEFAULT_USER="$USER"
+# export DEFAULT_USER="$USER"
 
-ZSH_THEME="powerlevel9k/powerlevel9k"
+# ZSH_THEME="powerlevel9k/powerlevel9k"
 # *************************
 
 # ------------
