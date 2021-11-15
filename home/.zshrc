@@ -1,3 +1,9 @@
+#  _____    _
+# |__  /___| |__  _ __ ___
+#   / // __| '_ \| '__/ __|
+#  / /_\__ \ | | | | | (__
+# /____|___/_| |_|_|  \___|
+
 # ----------
 ### PATH ###
 
@@ -7,40 +13,16 @@ export PATH=$HOME/bin:/usr/local/bin:$PATH
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dustinmichels/.oh-my-zsh"
 
-# Miniconda3
-export PATH=/Users/dustinmichels/miniconda3/bin:$PATH
+# Poetry
+export PATH="$HOME/.poetry/bin:$PATH"
 
-# Flutter
-export PATH=$PATH:/Users/dustinmichels/development/flutter/bin
+# Created by `pipx` on 2021-10-12 07:12:06
+export PATH="$PATH:/Users/dustinmichels/.local/bin"
 
 # -----------
 ### THEME ###
 
 ZSH_THEME="robbyrussell"
-
-# *************************
-#~~ POWERLEVEL9K STUFF ~~#
-
-# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs rbenv virtualenv anaconda nvm)
-# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time background_jobs root_indicator)
-
-# POWERLEVEL9K_VIRTUALENV_BACKGROUND="grey"
-# POWERLEVEL9K_VIRTUALENV_VISUAL_IDENTIFIER_COLOR="green"
-
-# POWERLEVEL9K_ANACONDA_BACKGROUND="grey"
-# POWERLEVEL9K_ANACONDA_VISUAL_IDENTIFIER_COLOR="green"
-
-# POWERLEVEL9K_MODE='nerdfont-complete'
-# POWERLEVEL9K_PROMPT_ON_NEWLINE=true
-
-# POWERLEVEL9K_HOME_ICON='\uf06c'
-
-# POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$'\uE0B8' # angly
-
-# export DEFAULT_USER="$USER"
-
-# ZSH_THEME="powerlevel9k/powerlevel9k"
-# *************************
 
 # ------------
 ### CONFIG ###
@@ -97,7 +79,9 @@ DISABLE_UPDATE_PROMPT=true
 plugins=(
     git
     zsh-autosuggestions
+    poetry
 )
+
 
 source $ZSH/oh-my-zsh.sh
 
@@ -131,30 +115,29 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/dustinmichels/miniconda3/bin/conda' 'shell.zsh' 'hook' 2>/dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/dustinmichels/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/dustinmichels/miniconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/dustinmichels/miniconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+
+# ----------------
+### MORE PATHS ###
 
 # nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/dustinmichels/development/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dustinmichels/development/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/dustinmichels/development/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dustinmichels/development/google-cloud-sdk/completion.zsh.inc'; fi
+# init pyenv
+eval "$(pyenv init -)"
 
 # cleanup path
 typeset -U PATH
+
+# ---------------
+### FUNCTIONS ###
+
+# Create a new directory and enter it
+mkd() {
+    mkdir -p "$@" && cd "$@"
+}
+
+# See 10 biggest items
+biggest() {
+    du -ah * | sort -rh | head -10
+}
