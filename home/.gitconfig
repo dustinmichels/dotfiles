@@ -6,11 +6,6 @@
 	excludesfile = /Users/dustinmichels/.gitignore_global
 [credential]
 	helper = osxkeychain
-[filter "lfs"]
-	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
-	required = true
 [alias]
 	ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
 	last = log -1 HEAD
