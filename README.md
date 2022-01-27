@@ -32,16 +32,22 @@ brew bundle install
 
 ### Pyenv
 
-Install recommended libraries:
-
 ```sh
+# install dependencies
 brew install openssl readline sqlite3 xz zlib
+
+# install pyenv
+brew install pyenv
+
+# post install
+echo 'eval "$(pyenv init --path)"' >> ~/.zprofile
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
 ```
 
 List available pythons
 
 ```sh
-pyenv install --list
+pyenv install --list | grep " 3\.[678]"
 ```
 
 Install one, eg:
