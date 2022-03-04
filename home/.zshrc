@@ -143,12 +143,12 @@ function exip {
 }
 
 # */ Create a new directory and enter it */
-mkd() {
+function mkd() {
     mkdir -p "$@" && cd "$@"
 }
 
 # */ See 10 biggest items */
-biggest() {
+function biggest() {
     du -ah * | sort -rh | head -10
 }
 
