@@ -4,28 +4,41 @@
 #  / /_\__ \ | | | | | (__
 # /____|___/_| |_|_|  \___|
 
-# ----------
-### PATH ###
+# -------------------------------------------------------------------
+# PATH STUFF
+# -------------------------------------------------------------------
 
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
+# export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dustinmichels/.oh-my-zsh"
 
-# Poetry
+# Poetry (python)
 export PATH="$HOME/.poetry/bin:$PATH"
 
-# Created by `pipx` on 2021-10-12 07:12:06
-export PATH="$PATH:/Users/dustinmichels/.local/bin"
+# Go
+export PATH="$PATH:/Users/dustinmichels/go/bin"
 
-# -----------
-### THEME ###
+# Journey
+export JOURNEY_ENV=dev
+export GOPRIVATE=github.com/journeyid
 
+# -------------------------------------------------------------------
+# OHMYZSH SETTINGS
+# -------------------------------------------------------------------
+
+# Set name of the theme to load --- if set to "random", it will
+# load a random theme each time oh-my-zsh is loaded, in which case,
+# to know which specific one was loaded, run: echo $RANDOM_THEME
+# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="robbyrussell"
 
-# ------------
-### CONFIG ###
+# Set list of themes to pick from when loading at random
+# Setting this variable when ZSH_THEME=random will cause zsh to load
+# a theme from this variable instead of looking in $ZSH/themes/
+# If set to an empty array, this variable will have no effect.
+# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
@@ -34,14 +47,16 @@ ZSH_THEME="robbyrussell"
 # Case-sensitive completion must be off. _ and - will be interchangeable.
 # HYPHEN_INSENSITIVE="true"
 
-# Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
-
-# Update without prompt
-DISABLE_UPDATE_PROMPT=true
+# Uncomment one of the following lines to change the auto-update behavior
+# zstyle ':omz:update' mode disabled  # disable automatic updates
+# zstyle ':omz:update' mode auto      # update automatically without asking
+# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 
 # Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
+# zstyle ':omz:update' frequency 13
+
+# Uncomment the following line if pasting URLs and other text is messed up.
+# DISABLE_MAGIC_FUNCTIONS="true"
 
 # Uncomment the following line to disable colors in ls.
 # DISABLE_LS_COLORS="true"
@@ -53,6 +68,9 @@ DISABLE_UPDATE_PROMPT=true
 # ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
+# You can also set it to another string to have that shown instead of the default red dots.
+# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
+# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
 # COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
@@ -72,21 +90,22 @@ DISABLE_UPDATE_PROMPT=true
 # ZSH_CUSTOM=/path/to/new-custom-folder
 
 # Which plugins would you like to load?
-# Standard plugins can be found in ~/.oh-my-zsh/plugins/*
-# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
+# Standard plugins can be found in $ZSH/plugins/
+# Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
     git
     zsh-autosuggestions
     poetry
+    z
 )
-
 
 source $ZSH/oh-my-zsh.sh
 
-# ------------------------
-### User configuration ###
+# -------------------------------------------------------------------
+# USER CONFIG
+# -------------------------------------------------------------------
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -103,9 +122,6 @@ source $ZSH/oh-my-zsh.sh
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 
-# ssh
-# export SSH_KEY_PATH="~/.ssh/rsa_id"
-
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
 # users are encouraged to define aliases within the ZSH_CUSTOM folder.
@@ -114,30 +130,58 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew' # Python (pyenv)
 
 
-# ----------------
-### MORE PATHS ###
+# -------------------------------------------------------------------
+# FUNCTIONS
+# -------------------------------------------------------------------
 
-# nvm
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+# */ See external IP address */
+function exip {
+    curl ipecho.net/plain ; echo
+}
 
-# init pyenv
-eval "$(pyenv init -)"
-
-# cleanup path
-typeset -U PATH
-
-# ---------------
-### FUNCTIONS ###
-
-# Create a new directory and enter it
+# */ Create a new directory and enter it */
 mkd() {
     mkdir -p "$@" && cd "$@"
 }
 
-# See 10 biggest items
+# */ See 10 biggest items */
 biggest() {
     du -ah * | sort -rh | head -10
 }
+
+# -------------------------------------------------------------------
+# MORE PATH STUFF
+# -------------------------------------------------------------------
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc'; fi
+
+# Created by `pipx` on 2022-02-22 23:15:22
+export PATH="$PATH:/Users/dustinmichels/.local/bin"
+
+# >>> conda initialize >>>
+# # !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/dustinmichels/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/dustinmichels/opt/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/Users/dustinmichels/opt/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/dustinmichels/opt/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+# turn off conda by default. Can reactivate with 'conda activate'
+conda deactivate
+
+# cleanup path
+typeset -U PATH

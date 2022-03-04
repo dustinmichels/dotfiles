@@ -1,10 +1,30 @@
 # dotfiles
 
-## Terminal
+## Usage
 
-[iterm2](https://www.iterm2.com/) with manta colors
+When setting up a new computer, clone the repo.
 
-## Shell
+```sh
+# copy files to home directory
+./setup.sh
+```
+
+To backup existing dotfiles:
+
+```sh
+# link files in home directory to repo
+./backup.sh
+```
+
+## Other programs
+
+Install and setup manually.
+
+### Terminal
+
+[iterm2](https://www.iterm2.com/) with manta colors.
+
+### Shell
 
 Using [oh-my-zsh](https://ohmyz.sh/).
 
@@ -18,7 +38,7 @@ Install [autosuggestion plugin](https://github.com/zsh-users/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 ```
 
-## Homebrew
+### Homebrew
 
 Install [homebrew](https://brew.sh/) package manager.
 
@@ -28,9 +48,9 @@ Install packages from Brewfile
 brew bundle install
 ```
 
-## Python
+### Python
 
-### Pyenv
+#### Pyenv
 
 ```sh
 # install dependencies
@@ -62,7 +82,7 @@ Configure default:
 pyenv global 3.8.12
 ```
 
-### Poetry
+#### Poetry
 
 Install poetry
 https://python-poetry.org/docs/#installation
