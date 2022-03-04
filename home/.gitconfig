@@ -5,7 +5,7 @@
 	editor = vim
 	excludesfile = /Users/dustinmichels/.gitignore_global
 [credential]
-	helper = osxkeychain
+	helper = cache
 [alias]
 	ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
 	last = log -1 HEAD
@@ -15,3 +15,8 @@
 	st = status
 	unstage = reset HEAD --
 
+# SSH in general
+[url "git@github.com:"]
+    insteadOf = https://github.com/
+[init]
+	defaultBranch = main
