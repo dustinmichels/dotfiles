@@ -99,6 +99,7 @@ plugins=(
     zsh-autosuggestions
     poetry
     z
+    asdf
 )
 
 source $ZSH/oh-my-zsh.sh
