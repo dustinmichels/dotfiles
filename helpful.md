@@ -1,8 +1,6 @@
 # Helpful
 
-## Homebrew / Homebrew Cask
-
-### Homebrew
+## Homebrew
 
 ```bash
 # update
@@ -22,16 +20,6 @@ brew cleanup
 
 # check things out
 brew doctor
-```
-
-### Homebrew Cask
-
-```bash
-# seach for casks
-brew search google-chrome
-
-# upgrade outdated brew cask apps
-brew cu
 ```
 
 ## Yarn

@@ -2,18 +2,36 @@
 
 ## Usage
 
-When setting up a new computer, clone the repo.
+I symlink my dotfiles with copies in this repo.
+
+When setting up a new computer, clone the repo, then run `./setup.sh` to copy files to their proper place.
 
 ```sh
 # copy files to home directory
 ./setup.sh
 ```
 
-To backup existing dotfiles:
+Then, to backup existing dotfiles:
 
 ```sh
 # link files in home directory to repo
 ./backup.sh
+```
+
+### Brewfile
+
+Periodically backup homebrew by running:
+
+```sh
+brew bundle dump --global
+```
+
+This outputs Brew programs to `~/.Brewfile`.
+
+To install anew:
+
+```sh
+brew bundle --global
 ```
 
 ## Other programs
