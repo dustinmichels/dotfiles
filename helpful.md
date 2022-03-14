@@ -20,6 +20,9 @@ brew cleanup
 
 # check things out
 brew doctor
+
+# brew leaves with tree
+brew leaves | xargs brew deps --include-build --tree
 ```
 
 ## Yarn
