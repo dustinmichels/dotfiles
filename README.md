@@ -23,7 +23,7 @@ Then, to backup existing dotfiles:
 Periodically backup homebrew by running:
 
 ```sh
-brew bundle dump --global
+brew bundle dump --global --force
 ```
 
 This outputs Brew programs to `~/.Brewfile`.
@@ -33,6 +33,8 @@ To install anew:
 ```sh
 brew bundle --global
 ```
+
+See more brew stuff [here](https://gist.github.com/ChristopherA/a579274536aab36ea9966f301ff14f3f)
 
 ## Other programs
 
