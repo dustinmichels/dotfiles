@@ -133,14 +133,14 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew' # Python (pyenv)
 
-
 # -------------------------------------------------------------------
 # FUNCTIONS
 # -------------------------------------------------------------------
 
 # */ See external IP address */
 function exip {
-    curl ipecho.net/plain ; echo
+    curl ipecho.net/plain
+    echo
 }
 
 # */ Create a new directory and enter it */
@@ -151,6 +151,26 @@ function mkd() {
 # */ See 10 biggest items */
 function biggest() {
     du -ah * | sort -rh | head -10
+}
+
+# */ Source various env files
+# */
+# */ Example usage:
+# */    envup && go run .
+# */    envup production && go run .
+function envup() {
+    file=$([ -z "$1" ] && echo ".env" || echo ".env.$1")
+    [ "$1" = "-f" ] && shift && file=$1
+    if [ -f "$file" ]; then
+        IFS=$'\n'
+        env_vars=($(sed '/^#.*/d; /^[[:space:]]*$/d; s/^export //' $file))
+        for v in $env_vars; do
+            eval export $v
+        done
+    else
+        echo "$file does not exist"
+        return 1
+    fi
 }
 
 # -------------------------------------------------------------------
@@ -168,7 +188,7 @@ export PATH="$PATH:/Users/dustinmichels/.local/bin"
 
 # >>> conda initialize >>>
 # # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/dustinmichels/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+__conda_setup="$('/Users/dustinmichels/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2>/dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
