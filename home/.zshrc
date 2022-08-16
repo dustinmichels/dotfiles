@@ -204,5 +204,12 @@ unset __conda_setup
 # turn off conda by default. Can reactivate with 'conda activate'
 conda deactivate
 
+# bun completions
+[ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
+
+# Bun
+export BUN_INSTALL="/Users/dustinmichels/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 # cleanup path
 typeset -U PATH
