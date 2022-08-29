@@ -173,6 +173,13 @@ function envup() {
     fi
 }
 
+# Taylor's Proxy
+TUNNEL=35.87.44.52
+tunnel() {
+    echo "forwarding $1..."
+    \ssh -o "ExitOnForwardFailure yes" -N -R 9002:localhost:$1 ubuntu@$TUNNEL
+}
+
 # -------------------------------------------------------------------
 # MORE PATH STUFF
 # -------------------------------------------------------------------

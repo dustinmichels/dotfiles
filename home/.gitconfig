@@ -1,22 +1,29 @@
 [user]
-	name = Dustin Michels
-	email = dustin7538@gmail.com
-[core]
-	editor = vim
-	excludesfile = /Users/dustinmichels/.gitignore_global
-[credential]
-	helper = cache
-[alias]
-	ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
-	last = log -1 HEAD
-	co = checkout
-	br = branch
-	ci = commit
-	st = status
-	unstage = reset HEAD --
+name = Dustin Michels
+email = dustin7538@gmail.com
 
-# SSH in general
-[url "git@github.com:"]
-    insteadOf = https://github.com/
+[core]
+editor = vim
+excludesfile = /Users/dustinmichels/.gitignore_global
+
 [init]
-	defaultBranch = main
+defaultBranch = main
+
+[credential]
+helper = cache
+
+[push]
+autoSetupRemote = true
+
+[alias]
+ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
+last = log -1 HEAD
+co = checkout
+br = branch
+ci = commit
+st = status
+unstage = reset HEAD --
+
+# Use ssh when connecting to github
+[url "git@github.com:"]
+insteadOf = https://github.com/
