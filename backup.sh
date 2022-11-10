@@ -10,8 +10,7 @@ files=(
   .gitconfig
   .gitignore_global
   .Brewfile
-  .config/kitty/kitty.conf
-  .config/kitty/theme.conf
+  .config/starship.toml
 )
 
 for val in $files; do
