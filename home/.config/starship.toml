@@ -1,0 +1,162 @@
+format = """
+$username\
+$hostname\
+$sudo\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$docker_context\
+$package\
+
+$fill\
+
+$elixir\
+$golang\
+$haskell\
+$java\
+$julia\
+$nodejs\
+$nim\
+$nix_shell\
+$rust\
+$scala\
+
+$jobs\
+$cmd_duration\
+$time\
+
+$line_break\
+$character\
+"""
+
+# ---------- PREAMBLE ----------
+[username]
+disabled = false
+format = "[$user]($style)"
+show_always = false
+style_root = "redbold"
+style_user = "whitedimmed"
+
+[hostname]
+format = "@[$hostname]($style)"
+ssh_only = true
+ssh_symbol = ""
+style = "greenbolddimmed"
+
+[sudo]
+disabled = true
+format = "[as$symbol]($style)"
+style = "boldgreen"
+symbol = ""
+
+[directory]
+format = "[ $path ]($style)"
+home_symbol = "~"
+read_only = " "
+truncation_length = 3
+truncation_symbol = ".../"
+
+[directory.substitutions]
+"Documents" = " "
+"Downloads" = " "
+# "GitRepos/JOURNEY" = "廬 "
+# "GitRepos" = " "
+"GitRepos" = " "
+"Music" = " "
+"Pictures" = " "
+
+[git_branch]
+format = "[$symbol$branch(:$remote_branch)]($style) "
+symbol = " "
+
+[git_state]
+format = "([$state($progress_current/$progress_total)]($style))"
+style = "bright-black"
+
+[git_status]
+format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218)($ahead_behind$stashed)]($style)"
+style = "cyan"
+
+[docker_context]
+symbol = " "
+
+[package]
+symbol = " "
+
+# ---------- LANGUAGES ----------
+
+[elixir]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[golang]
+format = "[$symbol $version]($style)"
+symbol = ""
+
+[haskell]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[java]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[julia]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[nodejs]
+format = '[ $symbol ($version) ]($style)'
+symbol = ""
+
+[nim]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[nix_shell]
+disabled = false
+format = "via[$symbol$state(($name))](boldblue)"
+impure_msg = "[impureshell](boldred)"
+pure_msg = "[pureshell](boldgreen)"
+
+[python]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+[rlang]
+format = '[ $symbol ($version) ]($style)'
+symbol = "ﳒ "
+
+[rust]
+format = '[ $symbol ($version) ]($style)'
+symbol = ""
+
+[scala]
+format = '[ $symbol ($version) ]($style)'
+symbol = " "
+
+# ---------- FAR RIGHT ----------
+
+[jobs]
+disabled = false
+
+[cmd_duration]
+format = "[$duration]($style)"
+# style = "yellow"
+
+[time]
+disabled = false
+format = '[  $time ]($style)'
+use_12hr = false
+utc_time_offset = "local"
+
+# ---------- NEW LINE ----------
+
+[character]
+error_symbol = "[❯](red)"
+success_symbol = "[❯](green)"
+vicmd_symbol = "[❮](green)"
+
+[fill]
+symbol = "-"
