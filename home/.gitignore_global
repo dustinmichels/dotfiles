@@ -1,3 +1,7 @@
+# Custom #
+##########
+.env.me
+
 # Compiled source #
 ###################
 *.com
@@ -40,7 +44,6 @@ Thumbs.db
 .mypy_cache/
 .ipynb_checkpoints
 __pycache__/
-
 
 # IDE #
 ###########

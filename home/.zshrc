@@ -14,11 +14,11 @@
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/dustinmichels/.oh-my-zsh"
 
-# Poetry (python)
-export PATH="$HOME/.poetry/bin:$PATH"
-
 # Go
 export PATH="$PATH:/Users/dustinmichels/go/bin"
+
+# KOI
+export PATH="$PATH:/Users/dustinmichels/dev/koi-tool"
 
 # Journey
 export JOURNEY_ENV=dev
@@ -95,11 +95,9 @@ ZSH_THEME="robbyrussell"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-    git
+    # git
     zsh-autosuggestions
-    poetry
     z
-    asdf
 )
 
 source $ZSH/oh-my-zsh.sh
@@ -131,7 +129,10 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew' # Python (pyenv)
+
+# To fix `brew doctor` warning "'config' scripts exist outside your system or Homebrew directories"
+#  https://github.com/pyenv/pyenv
+# alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew'
 
 # -------------------------------------------------------------------
 # FUNCTIONS
@@ -174,21 +175,15 @@ function envup() {
 }
 
 # Taylor's Proxy
-TUNNEL=35.87.44.52
-tunnel() {
-    echo "forwarding $1..."
-    \ssh -o "ExitOnForwardFailure yes" -N -R 9002:localhost:$1 ubuntu@$TUNNEL
-}
+# TUNNEL=35.87.44.52
+# tunnel() {
+#     echo "forwarding $1..."
+#     \ssh -o "ExitOnForwardFailure yes" -N -R 9002:localhost:$1 ubuntu@$TUNNEL
+# }
 
 # -------------------------------------------------------------------
 # MORE PATH STUFF
 # -------------------------------------------------------------------
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc'; fi
 
 # Created by `pipx` on 2022-02-22 23:15:22
 export PATH="$PATH:/Users/dustinmichels/.local/bin"
@@ -211,11 +206,38 @@ unset __conda_setup
 # turn off conda by default. Can reactivate with 'conda activate'
 conda deactivate
 
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+alias mo="mongosh 'mongodb://localhost:27017,localhost:27018,localhost:27019/journey_dev?replicaSet=mongodb-replicaset'"
+
+# Twilio autocomplete
+# eval
+# TWILIO_AC_ZSH_SETUP_PATH=/Users/dustinmichels/.twilio-cli/autocomplete/zsh_setup && test -f $TWILIO_AC_ZSH_SETUP_PATH && source $TWILIO_AC_ZSH_SETUP_PATH # twilio autocomplete setup
+
+# asdf
+. /opt/homebrew/opt/asdf/libexec/asdf.sh
+
+# starship!
+eval "$(starship init zsh)"
+export PATH="/Users/dustinmichels/.asdf/installs/nodejs/lts/.npm/bin:/Users/dustinmichels/.asdf/shims:/opt/homebrew/opt/asdf/libexec/bin:/Users/dustinmichels/opt/anaconda3/condabin:/Users/dustinmichels/.pyenv/shims:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/dustinmichels/.local/bin:/Users/dustinmichels/Library/Application Support/JetBrains/Toolbox/scripts:/Users/dustinmichels/go/bin:/Users/dustinmichels/dev/koi-tool"
+alias mo="mongo 'mongodb://localhost:27017,localhost:27018,localhost:27019/journey_dev?replicaSet=mongodb-replicaset'"
+
+export PATH="/Users/dustinmichels/.deta/bin:$PATH"
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc'; fi
+
 # bun completions
 [ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
 
-# Bun
-export BUN_INSTALL="/Users/dustinmichels/.bun"
+# bun
+export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 # cleanup path
