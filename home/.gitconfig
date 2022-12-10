@@ -26,4 +26,4 @@ unstage = reset HEAD --
 
 # Use ssh when connecting to github
 [url "git@github.com:"]
-insteadOf = https://github.com/
+insteadOf = https://github.com

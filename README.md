@@ -74,7 +74,7 @@ brew bundle install
 
 ```sh
 # install dependencies
-brew install openssl readline sqlite3 xz zlib
+brew install openssl readline sqlite3 xz zlib tcl-tk
 
 # install pyenv
 brew install pyenv

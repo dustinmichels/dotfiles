@@ -11,6 +11,7 @@ $package\
 
 $fill\
 
+$conda\
 $elixir\
 $golang\
 $haskell\
@@ -19,12 +20,13 @@ $julia\
 $nodejs\
 $nim\
 $nix_shell\
+$python\
+$rlang\
 $rust\
 $scala\
 
 $jobs\
 $cmd_duration\
-$time\
 
 $line_break\
 $character\
@@ -75,23 +77,30 @@ format = "([$state($progress_current/$progress_total)]($style))"
 style = "bright-black"
 
 [git_status]
-format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218)($ahead_behind$stashed)]($style)"
-style = "cyan"
+# format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218)($ahead_behind$stashed)]($style)"
+# style = "cyan"
 
 [docker_context]
 symbol = " "
 
 [package]
+format = "[ $symbol($version) ]($style) "
 symbol = " "
 
 # ---------- LANGUAGES ----------
+
+[conda]
+# format = '[ $symbol ($version) ]($style)'
+format = "[ $symbol ($environment) ]($style) "
+ignore_base = false
+symbol = "🅒 "
 
 [elixir]
 format = '[ $symbol ($version) ]($style)'
 symbol = " "
 
 [golang]
-format = "[$symbol $version]($style)"
+format = '[ $symbol ($version) ]($style)'
 symbol = ""
 
 [haskell]
@@ -122,6 +131,7 @@ pure_msg = "[pureshell](boldgreen)"
 
 [python]
 format = '[ $symbol ($version) ]($style)'
+style = "bright-green"
 symbol = " "
 
 [rlang]
