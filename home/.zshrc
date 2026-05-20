@@ -12,27 +12,17 @@
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/dustinmichels/.oh-my-zsh"
-
-# Go
-export PATH="$PATH:/Users/dustinmichels/go/bin"
-
-# KOI
-export PATH="$PATH:/Users/dustinmichels/dev/koi-tool"
-
-# Journey
-export JOURNEY_ENV=dev
-export GOPRIVATE=github.com/journeyid
-
-# -------------------------------------------------------------------
-# OHMYZSH SETTINGS
-# -------------------------------------------------------------------
+export ZSH="$HOME/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="robbyrussell"
+
+# -------------------------------------------------------------------
+# OHMYZSH SETTINGS
+# -------------------------------------------------------------------
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -95,9 +85,12 @@ ZSH_THEME="robbyrussell"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-    # git
-    zsh-autosuggestions
-    z
+  git
+  zsh-autosuggestions
+  mise
+  # z
+  # asdf
+  # poetry
 )
 
 source $ZSH/oh-my-zsh.sh
@@ -130,9 +123,7 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-# To fix `brew doctor` warning "'config' scripts exist outside your system or Homebrew directories"
-#  https://github.com/pyenv/pyenv
-# alias brew='env PATH="${PATH//$(pyenv root)\/shims:/}" brew'
+# alias air='$(go env GOPATH)/bin/air'
 
 # -------------------------------------------------------------------
 # FUNCTIONS
@@ -140,18 +131,18 @@ source $ZSH/oh-my-zsh.sh
 
 # */ See external IP address */
 function exip {
-    curl ipecho.net/plain
-    echo
+  curl ipecho.net/plain
+  echo
 }
 
 # */ Create a new directory and enter it */
 function mkd() {
-    mkdir -p "$@" && cd "$@"
+  mkdir -p "$@" && cd "$@"
 }
 
 # */ See 10 biggest items */
 function biggest() {
-    du -ah * | sort -rh | head -10
+  du -ah * | sort -rh | head -10
 }
 
 # */ Source various env files
@@ -160,85 +151,53 @@ function biggest() {
 # */    envup && go run .
 # */    envup production && go run .
 function envup() {
-    file=$([ -z "$1" ] && echo ".env" || echo ".env.$1")
-    [ "$1" = "-f" ] && shift && file=$1
-    if [ -f "$file" ]; then
-        IFS=$'\n'
-        env_vars=($(sed '/^#.*/d; /^[[:space:]]*$/d; s/^export //' $file))
-        for v in $env_vars; do
-            eval export $v
-        done
-    else
-        echo "$file does not exist"
-        return 1
-    fi
+  file=$([ -z "$1" ] && echo ".env" || echo ".env.$1")
+  [ "$1" = "-f" ] && shift && file=$1
+  if [ -f "$file" ]; then
+    IFS=$'\n'
+    env_vars=($(sed '/^#.*/d; /^[[:space:]]*$/d; s/^export //' $file))
+    for v in $env_vars; do
+      eval export $v
+    done
+  else
+    echo "$file does not exist"
+    return 1
+  fi
 }
-
-# Taylor's Proxy
-# TUNNEL=35.87.44.52
-# tunnel() {
-#     echo "forwarding $1..."
-#     \ssh -o "ExitOnForwardFailure yes" -N -R 9002:localhost:$1 ubuntu@$TUNNEL
-# }
 
 # -------------------------------------------------------------------
 # MORE PATH STUFF
 # -------------------------------------------------------------------
 
-# Created by `pipx` on 2022-02-22 23:15:22
-export PATH="$PATH:/Users/dustinmichels/.local/bin"
+# golang
+# export PATH="$PATH:$HOME/go/bin/"
 
-# >>> conda initialize >>>
-# # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/dustinmichels/opt/anaconda3/bin/conda' 'shell.zsh' 'hook' 2>/dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/dustinmichels/opt/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/dustinmichels/opt/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/dustinmichels/opt/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+# connect4
+export PATH="$PATH:$HOME/GitRepos/connect4/bin"
 
-# turn off conda by default. Can reactivate with 'conda activate'
-conda deactivate
-
-# pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-
-alias mo="mongosh 'mongodb://localhost:27017,localhost:27018,localhost:27019/journey_dev?replicaSet=mongodb-replicaset'"
-
-# Twilio autocomplete
-# eval
-# TWILIO_AC_ZSH_SETUP_PATH=/Users/dustinmichels/.twilio-cli/autocomplete/zsh_setup && test -f $TWILIO_AC_ZSH_SETUP_PATH && source $TWILIO_AC_ZSH_SETUP_PATH # twilio autocomplete setup
-
-# asdf
-. /opt/homebrew/opt/asdf/libexec/asdf.sh
-
-# starship!
-eval "$(starship init zsh)"
-export PATH="/Users/dustinmichels/.asdf/installs/nodejs/lts/.npm/bin:/Users/dustinmichels/.asdf/shims:/opt/homebrew/opt/asdf/libexec/bin:/Users/dustinmichels/opt/anaconda3/condabin:/Users/dustinmichels/.pyenv/shims:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/dustinmichels/.local/bin:/Users/dustinmichels/Library/Application Support/JetBrains/Toolbox/scripts:/Users/dustinmichels/go/bin:/Users/dustinmichels/dev/koi-tool"
-alias mo="mongo 'mongodb://localhost:27017,localhost:27018,localhost:27019/journey_dev?replicaSet=mongodb-replicaset'"
-
-export PATH="/Users/dustinmichels/.deta/bin:$PATH"
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/dustinmichels/dev/google-cloud-sdk/completion.zsh.inc'; fi
+# Created by `pipx` on 2023-11-19 17:32:16
+# export PATH="$PATH:/Users/dustinmichels/.local/bin"
 
 # bun completions
-[ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
+# [ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
 
 # bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
+# export BUN_INSTALL="$HOME/.bun"
+# export PATH="$BUN_INSTALL/bin:$PATH"
+# export PATH="$HOME/.composer/vendor/bin:$PATH"
+
+# java
+# export JAVA_HOME=/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home
+# export PATH="$JAVA_HOME/bin:$PATH"
+
+# . "$HOME/.cargo/env"
+
+# Added by Antigravity
+export PATH="/Users/dustinmichels/.antigravity/antigravity/bin:$PATH"
+
+eval "$(mise activate zsh)"
+
+eval "$(zoxide init zsh)"
 
 # cleanup path
 typeset -U PATH
