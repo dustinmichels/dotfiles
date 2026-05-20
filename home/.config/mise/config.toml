@@ -1,0 +1,19 @@
+[tools]
+bun = "latest"
+duckdb = "latest"
+"github:yt-dlp/yt-dlp" = "latest"
+go = "latest"
+java = "latest"
+node = "latest"
+"pipx:black" = "latest"
+python = "latest"
+ripgrep = "latest"
+ruff = "latest"
+usage = "latest"
+uv = "latest"
+zoxide = "latest"
+
+[settings]
+# Tells mise to look for a uv.lock or pyproject.toml 
+# and automatically activate the .venv using uv
+python.uv_venv_auto = true
