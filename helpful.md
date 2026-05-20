@@ -25,16 +25,6 @@ brew doctor
 brew leaves | xargs brew deps --include-build --tree
 ```
 
-## Yarn
-
-```bash
-# clean cache
-yarn cache clean
-
-# remove unnecessary files (careful)
-yarn autoclean
-```
-
 ## Docker
 
 ```bash

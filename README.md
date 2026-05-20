@@ -8,14 +8,14 @@ When setting up a new computer, clone the repo, then run `./setup.sh` to copy fi
 
 ```sh
 # copy files to home directory
-./setup.sh
+./scripts/setup.sh
 ```
 
-Then, to backup existing dotfiles:
+Then, to symlink existing dotfiles:
 
 ```sh
 # link files in home directory to repo
-./backup.sh
+./scripts/symlink.sh
 ```
 
 ### Brewfile
@@ -70,43 +70,10 @@ brew bundle install
 
 ### Python
 
-#### Pyenv
-
-```sh
-# install dependencies
-brew install openssl readline sqlite3 xz zlib tcl-tk
-
-# install pyenv
-brew install pyenv
-
-# post install
-echo 'eval "$(pyenv init --path)"' >> ~/.zprofile
-echo 'eval "$(pyenv init -)"' >> ~/.zshrc
-```
-
-List available pythons
-
-```sh
-pyenv install --list | grep " 3\.[678]"
-```
-
-Install one, eg:
-
-```sh
-pyenv install 3.8.12
-```
-
-Configure default:
-
-```sh
-pyenv global 3.8.12
-```
-
-#### Poetry
-
-Install poetry
-https://python-poetry.org/docs/#installation
-
 ### Resources
 
 - [homebrew/homebrew-bundle](https://github.com/Homebrew/homebrew-bundle)
+
+## More notes
+
+- [asdf](notes/asdf.md)
