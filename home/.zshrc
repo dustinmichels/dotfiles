@@ -82,8 +82,11 @@ export PATH="/Users/dustinmichels/.antigravity/antigravity/bin:$PATH"
 # connect4
 export PATH="$PATH:$HOME/GitRepos/connect4/bin"
 
-eval "$(mise activate zsh)"
+# eval "$(mise activate zsh)"
 eval "$(zoxide init zsh)"
+
+# Claude?
+export PATH="$PATH:$HOME/.local/bin"
 
 # cleanup path
 typeset -U PATH

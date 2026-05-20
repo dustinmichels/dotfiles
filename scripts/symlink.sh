@@ -11,10 +11,16 @@ files=(
   .gitignore_global
   .Brewfile
   .config/starship.toml
+  .config/mise/config.toml
 )
 
 for val in $files; do
+  if [[ ! -e ~/$val ]]; then
+    echo "skipping $val (not found in home)"
+    continue
+  fi
   echo $val
-  rm home/$val
+  mkdir -p home/$(dirname $val)
+  rm -f home/$val
   ln ~/$val home/$val
 done

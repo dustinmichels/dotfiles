@@ -68,6 +68,17 @@ Install packages from Brewfile
 brew bundle install
 ```
 
+### Mise
+
+- [Install mise](https://mise.jdx.dev/installing-mise.html)
+
+Mise is installed with Homebrew.
+
+```sh
+# see global
+mise ls --global
+```
+
 ### Python
 
 ### Resources
