@@ -1,6 +1,5 @@
 #!/bin/zsh
 
-# --- BACKUP EXISTING DOTFILES ---
 # Symlink selected dotfiles in home directory to this git repo.
 
 files=(
@@ -16,11 +15,11 @@ files=(
 
 for val in $files; do
   if [[ ! -e ~/$val ]]; then
-    echo "skipping $val (not found in home)"
+    echo "  ⏭️  $val (not found)"
     continue
   fi
-  echo $val
   mkdir -p home/$(dirname $val)
   rm -f home/$val
   ln ~/$val home/$val
+  echo "  ✅ $val"
 done
