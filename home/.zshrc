@@ -72,6 +72,12 @@ function envup() {
   fi
 }
 
+# gi - gitignore
+# eg,
+#     gi vue,python,macos >> .gitignore
+function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@ ;}
+
+
 # -------------------------------------------------------------------
 # PATH & TOOLS
 # -------------------------------------------------------------------
