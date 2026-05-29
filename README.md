@@ -4,14 +4,14 @@
 
 I symlink my dotfiles with copies in this repo.
 
-When setting up a new computer, clone the repo, then run `./setup.sh` to copy files to their proper place.
+When setting up a new computer, clone the repo, then run `./setup_new_computer.sh` to copy files to their proper place.
 
 ```sh
 # copy files to home directory
-./scripts/setup.sh
+./scripts/setup_new_computer.sh
 ```
 
-Then, to symlink existing dotfiles:
+Then (or alternatively) to symlink existing dotfiles:
 
 ```sh
 # link files in home directory to repo
@@ -32,6 +32,9 @@ To install anew:
 
 ```sh
 brew bundle --global
+
+# OR (to uninstall and reinstall)
+./scripts/homebrew_refresh.sh
 ```
 
 See more brew stuff [here](https://gist.github.com/ChristopherA/a579274536aab36ea9966f301ff14f3f)

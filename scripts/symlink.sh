@@ -4,6 +4,8 @@
 
 files=(
   .zshrc
+  .zprofile
+  .zshenv
   .vimrc
   .tmux.conf
   .gitconfig

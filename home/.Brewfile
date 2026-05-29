@@ -1,7 +1,3 @@
-# Run on: May 29, 2026
-#     brew bundle dump --global --force 
-
-brew "duckdb"
 brew "ffmpeg"
 brew "gh"
 brew "git"
@@ -32,6 +28,7 @@ cask "kitty"
 cask "ngrok"
 cask "rstudio"
 
+vscode "anthropic.claude-code"
 vscode "charliermarsh.ruff"
 vscode "esbenp.prettier-vscode"
 vscode "golang.go"
