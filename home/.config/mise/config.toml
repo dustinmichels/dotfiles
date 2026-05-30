@@ -1,12 +1,10 @@
 [tools]
 bun = "latest"
 duckdb = "latest"
-"github:yt-dlp/yt-dlp" = "latest"
 go = "latest"
 java = "latest"
 node = "latest"
 python = "latest"
-ripgrep = "latest"
 ruff = "latest"
 usage = "latest"
 uv = "latest"
