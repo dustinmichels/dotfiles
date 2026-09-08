@@ -102,5 +102,8 @@ eval "$(zoxide init zsh)"
 # Claude?
 export PATH="$PATH:$HOME/.local/bin"
 
+# Bun (for OMP)
+export PATH="/Users/dustinmichels/.bun/bin:$PATH"
+
 # cleanup path
 typeset -U PATH

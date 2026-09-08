@@ -1,7 +1,6 @@
 [tools]
 bun = "latest"
 duckdb = "latest"
-"github:can1357/oh-my-pi" = "latest"
 go = "latest"
 java = "latest"
 node = "latest"
