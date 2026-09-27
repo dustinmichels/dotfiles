@@ -1,0 +1,21 @@
+setupVersion: 2
+modelRoles:
+  smol: google-antigravity/gemini-3.5-flash-lite
+  advisor: anthropic/claude-opus-5-5
+  speech: local/kokoro
+  judge: openrouter/~typesafe/jev-latest
+  default: google-antigravity/gemini-3.8-flash:high
+advisor:
+  enabled: true
+retry:
+  fallbackChains:
+    {}
+dev:
+  autoqaConsent: granted
+codexResets:
+  autoRedeem: "yes"
+composer:
+  shape: box
+enabledProviders:
+  - claude-plugins
+defaultThinkingLevel: high

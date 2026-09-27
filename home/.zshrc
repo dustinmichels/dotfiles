@@ -21,18 +21,6 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 
 # -------------------------------------------------------------------
-# USER CONFIG
-# -------------------------------------------------------------------
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-
-# -------------------------------------------------------------------
 # FUNCTIONS
 # -------------------------------------------------------------------
 
@@ -52,7 +40,7 @@ function biggest() {
   du -ah * | sort -rh | head -10
 }
 
-# */ Source various env files
+# */ Source various env files (Thanks, Taylor)
 # */
 # */ Example usage:
 # */    envup && go run .
@@ -75,7 +63,13 @@ function envup() {
 # gi - gitignore
 # eg,
 #     gi vue,python,macos >> .gitignore
-function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@ ;}
+function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@; }
+
+# cleanup old sessions for oh-my-pi
+function ompgc() {
+  omp gc --archive --blobs --cold-archive-after-days=14 --apply "$@"
+  find ~/.omp/agent -type f -name "*.log" -size +50M -delete
+}
 
 # -------------------------------------------------------------------
 # PATH & TOOLS

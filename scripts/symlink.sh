@@ -13,7 +13,11 @@ files=(
   .Brewfile
   .config/starship.toml
   .config/mise/config.toml
+  .config/zed/settings.json
   .claude/settings.json
+  .omp/agent/config.yml
+  .omp/agent/mcp.json
+  .omp/agent/lsp.json
 )
 
 for val in $files; do

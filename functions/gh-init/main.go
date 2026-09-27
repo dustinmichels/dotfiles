@@ -22,7 +22,7 @@ func main() {
 	var (
 		repoName      = currentDirName()
 		visibility    string
-		connectRemote bool
+		connectRemote = true
 	)
 
 	form := huh.NewForm(
