@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dustinmichels/.gemini/hooks/rtk-hook-gemini.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp"
+      ]
+    },
+    "mise": {
+      "type": "stdio",
+      "command": "/opt/homebrew/bin/mise",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "MISE_EXPERIMENTAL": "1"
+      }
+    }
+  },
+  "permissionGrants": {
+    "allow": [
+      "command(grep)",
+      "command(rtk ls)",
+      "command(rtk grep)",
+      "command(rtk read)",
+      "command(rtk find)",
+      "command(rtk git status)",
+      "command(rtk git diff)",
+      "command(rtk git log)",
+      "command(rtk git show)",
+      "command(li)"
+    ]
+  }
+}

@@ -11,10 +11,21 @@ files=(
   .gitconfig
   .gitignore_global
   .Brewfile
+
+  # config
   .config/starship.toml
   .config/mise/config.toml
   .config/zed/settings.json
+
+  # claude
   .claude/settings.json
+  .claude/CLAUDE.md
+
+  # antigravity
+  .gemini/settings.json
+  .gemini/GEMINI.md
+
+  # omp
   .omp/agent/config.yml
   .omp/agent/mcp.json
   .omp/agent/lsp.json
