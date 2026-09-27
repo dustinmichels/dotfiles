@@ -81,23 +81,17 @@ export PATH="/Users/dustinmichels/.antigravity/antigravity/bin:$PATH"
 # my personal dev tools (functions)
 export PATH="$PATH:$HOME/dev/bin"
 
-# global bun? (for omp)
-# export PATH="$PATH:/Users/dustinmichels/.bun/bin"
-
-# bun completions
-[ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
-
-# connect4
-export PATH="$PATH:$HOME/GitRepos/connect4/bin"
-
 # eval "$(mise activate zsh)"
 eval "$(zoxide init zsh)"
 
-# Claude?
+# Claude
 export PATH="$PATH:$HOME/.local/bin"
 
 # Bun (for OMP)
 export PATH="/Users/dustinmichels/.bun/bin:$PATH"
+
+# bun completions
+[ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
 
 # cleanup path
 typeset -U PATH
