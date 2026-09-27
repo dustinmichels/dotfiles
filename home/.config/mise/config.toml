@@ -10,6 +10,7 @@ node = "latest"
 "npm:@vue/language-server" = "latest"
 "npm:clerk" = "latest"
 "npm:netlify-cli" = { version = "latest", trust_policy_excludes = ["@netlify/serverless-functions-api"] }
+"npm:oxfmt" = "latest"
 "npm:prettier" = "latest"
 "npm:typescript-language-server" = "latest"
 python = "latest"
