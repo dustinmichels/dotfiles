@@ -48,7 +48,6 @@ for arg in "$@"; do
   fi
 done
 
-
 if ((! dry_run)); then
   gc_args=("--apply" "${gc_args[@]}")
 fi
@@ -93,11 +92,11 @@ parse_bytes() {
     num="${match[1]}"
     unit="${(U)match[2]}"
     case "$unit" in
-      B|BYTES) mult=1 ;;
-      K|KB|KIB) mult=1024 ;;
-      M|MB|MIB) mult=$((1024 * 1024)) ;;
-      G|GB|GIB) mult=$((1024 * 1024 * 1024)) ;;
-      T|TB|TIB) mult=$((1024 * 1024 * 1024 * 1024)) ;;
+    B | BYTES) mult=1 ;;
+    K | KB | KIB) mult=1024 ;;
+    M | MB | MIB) mult=$((1024 * 1024)) ;;
+    G | GB | GIB) mult=$((1024 * 1024 * 1024)) ;;
+    T | TB | TIB) mult=$((1024 * 1024 * 1024 * 1024)) ;;
     esac
     printf "%.0f" "$((num * mult))"
   else
@@ -107,10 +106,13 @@ parse_bytes() {
 
 get_dir_size() {
   local d="$1"
-  [[ -d "$d" ]] || { echo 0; return; }
+  [[ -d "$d" ]] || {
+    echo 0
+    return
+  }
   local kb
   kb=$(du -sk "$d" 2>/dev/null | awk '{print $1}')
-  echo $(( ${kb:-0} * 1024 ))
+  echo $((${kb:-0} * 1024))
 }
 
 local size_before=0

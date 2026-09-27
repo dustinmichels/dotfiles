@@ -35,40 +35,40 @@ local quiet=0
 local target_file=""
 local -a brew_args
 
-while (( $# > 0 )); do
+while (($# > 0)); do
   case "$1" in
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    -o|--stdout)
-      to_stdout=1
-      shift
-      ;;
-    -n|--dry-run)
-      dry_run=1
-      shift
-      ;;
-    -q|--quiet)
-      quiet=1
-      shift
-      ;;
-    -f|--file)
-      if (( $# < 2 )); then
-        print -u2 "Error: Option $1 requires a file path argument."
-        exit 1
-      fi
-      target_file="$2"
-      shift 2
-      ;;
-    --file=*)
-      target_file="${1#*=}"
-      shift
-      ;;
-    *)
-      brew_args+=("$1")
-      shift
-      ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  -o | --stdout)
+    to_stdout=1
+    shift
+    ;;
+  -n | --dry-run)
+    dry_run=1
+    shift
+    ;;
+  -q | --quiet)
+    quiet=1
+    shift
+    ;;
+  -f | --file)
+    if (($# < 2)); then
+      print -u2 "Error: Option $1 requires a file path argument."
+      exit 1
+    fi
+    target_file="$2"
+    shift 2
+    ;;
+  --file=*)
+    target_file="${1#*=}"
+    shift
+    ;;
+  *)
+    brew_args+=("$1")
+    shift
+    ;;
   esac
 done
 
@@ -92,7 +92,10 @@ target_file="${target_file/#\~/$HOME}"
 local tmp_raw
 local tmp_formatted
 tmp_raw=$(mktemp -t brew_dump_raw.XXXXXX) || exit 1
-tmp_formatted=$(mktemp -t brew_dump_formatted.XXXXXX) || { rm -f "$tmp_raw"; exit 1; }
+tmp_formatted=$(mktemp -t brew_dump_formatted.XXXXXX) || {
+  rm -f "$tmp_raw"
+  exit 1
+}
 
 cleanup() {
   rm -f "$tmp_raw" "$tmp_formatted"
@@ -100,7 +103,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Run brew bundle dump to stdout (captured into tmp_raw)
-if ! brew bundle dump --file=- --quiet "${brew_args[@]}" > "$tmp_raw"; then
+if ! brew bundle dump --file=- --quiet "${brew_args[@]}" >"$tmp_raw"; then
   print -u2 "Error: 'brew bundle dump' failed."
   exit 1
 fi
@@ -115,12 +118,12 @@ format_brewfile() {
   local have_printed_section=0
 
   flush_section() {
-    if (( ${#section_items} == 0 )); then
+    if ((${#section_items} == 0)); then
       return
     fi
 
-    if (( have_printed_section )); then
-      print "" >> "$out_file"
+    if ((have_printed_section)); then
+      print "" >>"$out_file"
     fi
     have_printed_section=1
 
@@ -130,7 +133,7 @@ format_brewfile() {
       local item="${section_items[i]}"
       local comment="${section_comments[i]}"
       if [[ -n "$comment" ]]; then
-        if (( ${#item} > max_len )); then
+        if ((${#item} > max_len)); then
           max_len=${#item}
         fi
       fi
@@ -140,11 +143,11 @@ format_brewfile() {
       local item="${section_items[i]}"
       local comment="${section_comments[i]}"
       if [[ -n "$comment" ]]; then
-        local pad=$(( max_len - ${#item} + 1 ))
+        local pad=$((max_len - ${#item} + 1))
         local spaces=$(printf "%*s" $pad "")
-        print -r -- "${item}${spaces}# ${comment}" >> "$out_file"
+        print -r -- "${item}${spaces}# ${comment}" >>"$out_file"
       else
-        print -r -- "${item}" >> "$out_file"
+        print -r -- "${item}" >>"$out_file"
       fi
     done
 
@@ -154,7 +157,7 @@ format_brewfile() {
 
   while IFS= read -r line || [[ -n "$line" ]]; do
     # Skip empty lines from input
-    if [[ -z "${line// }" ]]; then
+    if [[ -z "${line// /}" ]]; then
       continue
     fi
 
@@ -185,35 +188,35 @@ format_brewfile() {
       flush_section
       current_type=""
       if [[ -n "$pending_comments" ]]; then
-        print -r -- "# $pending_comments" >> "$out_file"
+        print -r -- "# $pending_comments" >>"$out_file"
         pending_comments=""
       fi
-      print -r -- "$line" >> "$out_file"
+      print -r -- "$line" >>"$out_file"
     fi
-  done < "$in_file"
+  done <"$in_file"
 
   flush_section
 
   # If any trailing comments remained
   if [[ -n "$pending_comments" ]]; then
-    print -r -- "# $pending_comments" >> "$out_file"
+    print -r -- "# $pending_comments" >>"$out_file"
   fi
 }
 
 format_brewfile "$tmp_raw" "$tmp_formatted"
 
-if (( dry_run )); then
-  if (( ! quiet )); then
+if ((dry_run)); then
+  if ((! quiet)); then
     print "Dry-run: Would write formatted Brewfile to $target_file\n"
   fi
   cat "$tmp_formatted"
-elif (( to_stdout )); then
+elif ((to_stdout)); then
   cat "$tmp_formatted"
 else
   mkdir -p "$(dirname "$target_file")"
   # Overwrite target in-place to preserve hard links and symlinks
-  cat "$tmp_formatted" > "$target_file"
-  if (( ! quiet )); then
+  cat "$tmp_formatted" >"$target_file"
+  if ((! quiet)); then
     print "🍏 Successfully dumped and formatted Brewfile to $target_file"
   fi
 fi
