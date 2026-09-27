@@ -1,57 +1,54 @@
 tap "libsql/sqld", trusted: true
 tap "tursodatabase/tap"
 
-brew "cloudflared"      # Cloudflare Tunnel client (formerly Argo Tunnel)
-brew "cocoapods"        # Dependency manager for Cocoa projects
-brew "libtiff"          # TIFF library and utilities
-brew "ffmpeg"           # Play, record, convert, and stream select audio and video codecs
-brew "gh"               # GitHub command-line tool
-brew "ghostscript"      # Interpreter for PostScript and PDF
-brew "git"              # Distributed revision control system
-brew "git-filter-repo"  # Quickly rewrite git repository history
-brew "herdr"            # Agent multiplexer that lives in your terminal
-brew "hugo"             # Configurable static site generator
-brew "imagemagick"      # Tools and libraries to manipulate images in select formats
-brew "ios-deploy"       # Install and debug iPhone apps from the command-line
-brew "jq"               # Lightweight and flexible command-line JSON processor
-brew "libimobiledevice" # Library to communicate with iOS devices natively
-brew "llama.cpp"        # LLM inference in C/C++
-brew "mise"             # Polyglot runtime manager (asdf rust clone)
-brew "mkcert"           # Simple tool to make locally trusted development certificates
-brew "mole"             # Deep clean and optimize your Mac
-brew "pandoc"           # Swiss-army knife of markup format conversion
-brew "poppler"          # PDF rendering library (based on the xpdf-3.0 code base)
-brew "qrencode"         # QR Code generation
-brew "r"                # Software environment for statistical computing
-brew "ripgrep"          # Search tool like grep and The Silver Searcher
-brew "rtk"              # CLI proxy to minimize LLM token consumption
-brew "shfmt"            # Autoformat shell script source code
-brew "superfile"        # Modern and pretty fancy file manager for the terminal
-brew "tmux"             # Terminal multiplexer
-brew "tokei"            # Program that allows you to count code, quickly
-brew "tree"             # Display directories as trees (with optional color/HTML output)
-brew "visidata"         # Terminal spreadsheet multitool for discovering and arranging data
-brew "wget"             # Internet file retriever
-brew "xcodegen"         # Generate your Xcode project from a spec file and your folder structure
-brew "yt-dlp"           # Feature-rich command-line audio/video downloader
-brew "zsh"              # UNIX shell (command interpreter)
-brew "tursodatabase/tap/turso", trusted: true
+brew "libtiff"                                # TIFF library and utilities (9/27/2026)
+brew "shfmt"                                  # Autoformat shell script source code (9/27/2026)
+brew "pandoc"                                 # Swiss-army knife of markup format conversion (9/26/2026)
+brew "tursodatabase/tap/turso", trusted: true # (9/24/2026)
+brew "poppler"                                # PDF rendering library (based on the xpdf-3.0 code base) (9/13/2026)
+brew "ghostscript"                            # Interpreter for PostScript and PDF (9/13/2026)
+brew "llama.cpp"                              # LLM inference in C/C++ (9/9/2026)
+brew "ios-deploy"                             # Install and debug iPhone apps from the command-line (9/6/2026)
+brew "cocoapods"                              # Dependency manager for Cocoa projects (9/6/2026)
+brew "libimobiledevice"                       # Library to communicate with iOS devices natively (9/6/2026)
+brew "xcodegen"                               # Generate your Xcode project from a spec file and your folder structure (9/6/2026)
+brew "herdr"                                  # Agent multiplexer that lives in your terminal (8/23/2026)
+brew "superfile"                              # Modern and pretty fancy file manager for the terminal (7/29/2026)
+brew "cloudflared"                            # Cloudflare Tunnel client (formerly Argo Tunnel) (6/23/2026)
+brew "yt-dlp"                                 # Feature-rich command-line audio/video downloader (5/29/2026)
+brew "ripgrep"                                # Search tool like grep and The Silver Searcher (5/29/2026)
+brew "zsh"                                    # UNIX shell (command interpreter) (5/29/2026)
+brew "wget"                                   # Internet file retriever (5/29/2026)
+brew "visidata"                               # Terminal spreadsheet multitool for discovering and arranging data (5/29/2026)
+brew "tree"                                   # Display directories as trees (with optional color/HTML output) (5/29/2026)
+brew "tokei"                                  # Program that allows you to count code, quickly (5/29/2026)
+brew "tmux"                                   # Terminal multiplexer (5/29/2026)
+brew "rtk"                                    # CLI proxy to minimize LLM token consumption (5/29/2026)
+brew "r"                                      # Software environment for statistical computing (5/29/2026)
+brew "qrencode"                               # QR Code generation (5/29/2026)
+brew "mole"                                   # Deep clean and optimize your Mac (5/29/2026)
+brew "mise"                                   # Polyglot runtime manager (asdf rust clone) (5/29/2026)
+brew "jq"                                     # Lightweight and flexible command-line JSON processor (5/29/2026)
+brew "imagemagick"                            # Tools and libraries to manipulate images in select formats (5/29/2026)
+brew "hugo"                                   # Configurable static site generator (5/29/2026)
+brew "git-filter-repo"                        # Quickly rewrite git repository history (5/29/2026)
+brew "git"                                    # Distributed revision control system (5/29/2026)
+brew "gh"                                     # GitHub command-line tool (5/29/2026)
+brew "ffmpeg"                                 # Play, record, convert, and stream select audio and video codecs (5/29/2026)
 
-cask "antigravity"           # Agent orchestration platform
-cask "bruno"                 # Open source IDE for exploring and testing APIs
-cask "db-browser-for-sqlite" # Browser for SQLite databases
-cask "dbeaver-community"     # Universal database tool and SQL client
-cask "font-fira-code"
-cask "ghostty"           # Terminal emulator that uses platform-native UI and GPU acceleration
-cask "keepingyouawake"   # Tool to prevent the system from going into sleep mode
-cask "keyboardcleantool" # Blocks all Keyboard and TouchBar input
-cask "kitty"             # GPU-based terminal emulator
-cask "ngrok"             # Reverse proxy, secure introspectable tunnels to localhost
-cask "qgis"              # Geographic Information System
-cask "r-app"             # Environment for statistical computing and graphics
-cask "rstudio"           # Data science software focusing on R and Python
-cask "vlc"               # Multimedia player
-cask "zed"               # Multiplayer code editor
+cask "qgis"                  # Geographic Information System (8/11/2026)
+cask "r-app"                 # Environment for statistical computing and graphics (6/30/2026)
+cask "antigravity"           # Agent orchestration platform (6/5/2026)
+cask "zed"                   # Multiplayer code editor (6/2/2026)
+cask "vlc"                   # Multimedia player (5/29/2026)
+cask "rstudio"               # Data science software focusing on R and Python (5/29/2026)
+cask "ngrok"                 # Reverse proxy, secure introspectable tunnels to localhost (5/29/2026)
+cask "keyboardcleantool"     # Blocks all Keyboard and TouchBar input (5/29/2026)
+cask "keepingyouawake"       # Tool to prevent the system from going into sleep mode (5/29/2026)
+cask "font-fira-code"        # (5/29/2026)
+cask "dbeaver-community"     # Universal database tool and SQL client (5/29/2026)
+cask "db-browser-for-sqlite" # Browser for SQLite databases (5/29/2026)
+cask "bruno"                 # Open source IDE for exploring and testing APIs (5/29/2026)
 
 vscode "anthropic.claude-code"
 vscode "charliermarsh.ruff"
