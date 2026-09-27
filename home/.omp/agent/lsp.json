@@ -1,0 +1,35 @@
+{
+  "servers": {
+    "rust-analyzer": {
+      "command": "/Users/dustinmichels/.local/share/mise/shims/rust-analyzer",
+      "fileTypes": [".rs"],
+      "rootMarkers": ["Cargo.toml", "rust-analyzer.toml", "src-tauri/Cargo.toml"]
+    },
+    "typescript-language-server": {
+      "command": "/Users/dustinmichels/.local/share/mise/shims/typescript-language-server",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue"],
+      "rootMarkers": ["package.json", "tsconfig.json", "jsconfig.json"],
+      "initOptions": {
+        "hostInfo": "omp-coding-agent",
+        "preferences": {
+          "includeInlayParameterNameHints": "all",
+          "includeInlayVariableTypeHints": true,
+          "includeInlayFunctionParameterTypeHints": true
+        },
+        "plugins": [
+          {
+            "name": "@vue/typescript-plugin",
+            "location": "/Users/dustinmichels/.local/share/mise/installs/npm-vue-language-server/3.3.11/node_modules/.mise/@vue+language-server@3.3.11_typescript@7.0.2/node_modules",
+            "languages": ["vue"]
+          }
+        ]
+      }
+    },
+    "vue-language-server": {
+      "command": "/Users/dustinmichels/.local/share/mise/shims/vue-language-server",
+      "args": ["--stdio", "--tsdk=./node_modules/typescript/lib"],
+      "fileTypes": [".vue"],
+      "rootMarkers": ["vue.config.js", "nuxt.config.js", "nuxt.config.ts", "package.json"]
+    }
+  }
+}
