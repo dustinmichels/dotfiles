@@ -18,6 +18,7 @@ files=(
   .omp/agent/config.yml
   .omp/agent/mcp.json
   .omp/agent/lsp.json
+  .omp/agent/extensions/rtk.ts
 )
 
 for val in $files; do
