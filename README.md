@@ -61,16 +61,6 @@ Install [autosuggestion plugin](https://github.com/zsh-users/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 ```
 
-### Homebrew
-
-Install [homebrew](https://brew.sh/) package manager.
-
-Install packages from Brewfile
-
-```sh
-brew bundle install
-```
-
 ### Mise
 
 - [Install mise](https://mise.jdx.dev/installing-mise.html)
@@ -81,8 +71,6 @@ Mise is installed with Homebrew.
 # see global
 mise ls --global
 ```
-
-### Python
 
 ### Resources
 
