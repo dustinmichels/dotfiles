@@ -282,7 +282,12 @@ func runBrewCommand(action string, item *PackageItem) tea.Cmd {
 		brewArgs = append(brewArgs, item.Name)
 	}
 
-	shScript := `brew "$@"; rc=$?; echo; read -r -p "Press Enter to return to brew-ls..." _; exit $rc`
+	var shScript string
+	if action == "uninstall" {
+		shScript = `brew "$@"; rc=$?; if [ $rc -ne 0 ]; then echo; read -r -p "Press Enter to return to brew-ls..." _; fi; exit $rc`
+	} else {
+		shScript = `brew "$@"; rc=$?; echo; read -r -p "Press Enter to return to brew-ls..." _; exit $rc`
+	}
 	args := append([]string{"-c", shScript, "_"}, brewArgs...)
 	c := exec.Command("sh", args...)
 	c.Stdin = os.Stdin
@@ -608,6 +613,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newItems, err := loadPackages()
 			if err == nil {
 				m.allItems = newItems
+				if msg.action == "uninstall" {
+					m.searchInput.SetValue("")
+					m.searching = false
+				}
 				m.applyFilters()
 				m.initTable()
 			} else {
@@ -694,24 +703,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch msg.String() {
 				case "esc", "enter", "q", "x", "d":
 					m.modalAction = actionNone
+					m.showDetails = false
+					m.selectedItem = nil
 					return m, nil
 				}
 				return m, nil
 
 			case actionConfirmDelete:
 				switch msg.String() {
-				case "y", "Y":
+				case "x", "X", "d", "D":
 					if m.selectedItem != nil {
 						return m, runBrewCommand("uninstall", m.selectedItem)
 					}
 					m.modalAction = actionNone
+					m.showDetails = false
+					m.selectedItem = nil
 					return m, nil
 				case "n", "N", "esc", "q":
 					m.modalAction = actionNone
+					m.showDetails = false
+					m.selectedItem = nil
 					return m, nil
 				}
 				return m, nil
-
 			case actionConfirmUpgrade:
 				switch msg.String() {
 				case "y", "Y":
@@ -850,6 +864,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 
+		case "x":
+			m.statusMessage = ""
+			idx := m.table.Cursor()
+			if idx >= 0 && idx < len(m.filtered) {
+				it := m.filtered[idx]
+				m.selectedItem = &it
+				m.showDetails = true
+				if len(it.RequiredBy) > 0 {
+					m.modalAction = actionBlockedDelete
+				} else {
+					m.modalAction = actionConfirmDelete
+				}
+			}
+			return m, nil
+
 		case "o":
 			m.statusMessage = ""
 			idx := m.table.Cursor()
@@ -903,7 +932,7 @@ func (m model) View() string {
 		tip := lipgloss.NewStyle().Foreground(subtleColor).Render("  (press any key to dismiss)")
 		bottomBar = lipgloss.JoinHorizontal(lipgloss.Center, statusBadge, tip)
 	} else {
-		shortcuts := "↑/↓: navigate • /: search • tab: filter • s: sort date • n: sort name • enter: details • ?: help • q: quit"
+		shortcuts := "↑/↓: navigate • /: search • tab: filter • s: sort • enter: details • x: delete • ?: help • q: quit"
 		bottomBar = statusStyle.Render(shortcuts)
 	}
 
@@ -980,7 +1009,7 @@ func (m model) viewConfirmDeleteModal() string {
 		lipgloss.NewStyle().Bold(true).Render("Type:          "), strings.ToUpper(it.Type[:1])+it.Type[1:],
 		lipgloss.NewStyle().Foreground(subtleColor).Render("Command to execute:"),
 		lipgloss.NewStyle().Foreground(lipgloss.Color("#F59E0B")).Render(cmdPreview),
-		lipgloss.NewStyle().Bold(true).Render("[y] Yes, uninstall  •  [n / Esc] Cancel"),
+		lipgloss.NewStyle().Bold(true).Render("[x] Press x again to confirm delete  •  [n / Esc] Cancel"),
 	)
 	box := modalBoxStyle.Copy().BorderForeground(lipgloss.Color("#EF4444")).Render(content)
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
@@ -1133,7 +1162,7 @@ func (m model) viewHelpModal() string {
   Actions (in Details Modal)
     Enter       Open details for selected package
     u           Upgrade package (runs brew upgrade)
-    x / d       Delete package (with reverse-dependency check)
+    x / d       Delete package (press x a second time to confirm)
     o           Open package homepage in browser
     ?           Toggle this help overlay
     q / Ctrl+C  Quit brew-ls`
