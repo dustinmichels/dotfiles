@@ -65,10 +65,21 @@ function envup() {
 #     gi vue,python,macos >> .gitignore
 function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@; }
 
-# cleanup old sessions for oh-my-pi
-function ompgc() {
-  find ~/.omp/agent -type f -name "*.log" -size +50M -mtime +1 -delete
-  omp gc --archive --blobs --wal --cold-archive-after-days=14 --apply "$@"
+# cleanup old sessions and storage for oh-my-pi (see functions/omp-clean)
+alias ompgc=omp-clean
+
+# delegate global npm installs to mise
+npm() {
+  if ((${argv[(I)(i|install)]} && ${argv[(I)(-g|--global)]})); then
+    local -a pkgs=(${argv:#(-*|i|install)})
+    if (($#pkgs)); then
+      local -a targets=(npm:${^pkgs#npm:})
+      echo "Delegating to mise: mise use -g $targets"
+      mise use -g "${targets[@]}"
+      return
+    fi
+  fi
+  command npm "$@"
 }
 
 # -------------------------------------------------------------------
