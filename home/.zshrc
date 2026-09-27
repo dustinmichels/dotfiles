@@ -67,8 +67,8 @@ function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$
 
 # cleanup old sessions for oh-my-pi
 function ompgc() {
-  omp gc --archive --blobs --cold-archive-after-days=14 --apply "$@"
-  find ~/.omp/agent -type f -name "*.log" -size +50M -delete
+  find ~/.omp/agent -type f -name "*.log" -size +50M -mtime +1 -delete
+  omp gc --archive --blobs --wal --cold-archive-after-days=14 --apply "$@"
 }
 
 # -------------------------------------------------------------------
