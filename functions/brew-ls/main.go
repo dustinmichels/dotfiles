@@ -22,12 +22,14 @@ import (
 // PackageItem represents a single formula or cask.
 type PackageItem struct {
 	Name        string    `json:"name"`
+	FullName    string    `json:"full_name,omitempty"`
 	Type        string    `json:"type"` // "formula" or "cask"
 	Version     string    `json:"version"`
 	Desc        string    `json:"desc"`
 	Homepage    string    `json:"homepage"`
 	InstalledAt time.Time `json:"installed_at"`
 	Epoch       int64     `json:"epoch"`
+	RequiredBy  []string  `json:"required_by,omitempty"`
 }
 
 type BrewJSON struct {
@@ -35,18 +37,25 @@ type BrewJSON struct {
 	Casks    []Cask    `json:"casks"`
 }
 
+type RuntimeDep struct {
+	FullName string `json:"full_name"`
+	Version  string `json:"version"`
+}
+
 type Formula struct {
-	Name      string      `json:"name"`
-	FullName  string      `json:"full_name"`
-	Desc      string      `json:"desc"`
-	Homepage  string      `json:"homepage"`
-	Installed []Installed `json:"installed"`
+	Name         string      `json:"name"`
+	FullName     string      `json:"full_name"`
+	Desc         string      `json:"desc"`
+	Homepage     string      `json:"homepage"`
+	Dependencies []string    `json:"dependencies"`
+	Installed    []Installed `json:"installed"`
 }
 
 type Installed struct {
-	Version            string `json:"version"`
-	Time               int64  `json:"time"`
-	InstalledOnRequest bool   `json:"installed_on_request"`
+	Version             string       `json:"version"`
+	Time                int64        `json:"time"`
+	InstalledOnRequest  bool         `json:"installed_on_request"`
+	RuntimeDependencies []RuntimeDep `json:"runtime_dependencies"`
 }
 
 type Cask struct {
@@ -115,6 +124,36 @@ func loadPackages() ([]PackageItem, error) {
 		return nil, fmt.Errorf("failed to parse brew json: %w", err)
 	}
 
+	// Build reverse dependency map for all installed formulae using installed runtime dependencies.
+	dependentsMap := make(map[string]map[string]struct{})
+	recordDep := func(dep, dependent string) {
+		dep = strings.TrimSpace(dep)
+		if dep == "" || dep == dependent {
+			return
+		}
+		if dependentsMap[dep] == nil {
+			dependentsMap[dep] = make(map[string]struct{})
+		}
+		dependentsMap[dep][dependent] = struct{}{}
+		if strings.Contains(dep, "/") {
+			base := filepath.Base(dep)
+			if dependentsMap[base] == nil {
+				dependentsMap[base] = make(map[string]struct{})
+			}
+			dependentsMap[base][dependent] = struct{}{}
+		}
+	}
+
+	for _, f := range data.Formulae {
+		if len(f.Installed) == 0 {
+			continue
+		}
+		lastInst := f.Installed[len(f.Installed)-1]
+		for _, rDep := range lastInst.RuntimeDependencies {
+			recordDep(rDep.FullName, f.Name)
+		}
+	}
+
 	var items []PackageItem
 
 	// Process Formulae
@@ -143,14 +182,31 @@ func loadPackages() ([]PackageItem, error) {
 			epoch = lastInst.Time
 		}
 
+		var requiredBy []string
+		depSet := make(map[string]struct{})
+		for dep := range dependentsMap[f.Name] {
+			depSet[dep] = struct{}{}
+		}
+		if f.FullName != "" && f.FullName != f.Name {
+			for dep := range dependentsMap[f.FullName] {
+				depSet[dep] = struct{}{}
+			}
+		}
+		for dep := range depSet {
+			requiredBy = append(requiredBy, dep)
+		}
+		sort.Strings(requiredBy)
+
 		items = append(items, PackageItem{
 			Name:        f.Name,
+			FullName:    f.FullName,
 			Type:        "formula",
 			Version:     lastInst.Version,
 			Desc:        f.Desc,
 			Homepage:    f.Homepage,
 			InstalledAt: time.Unix(epoch, 0),
 			Epoch:       epoch,
+			RequiredBy:  requiredBy,
 		})
 	}
 
@@ -194,6 +250,54 @@ const (
 	SortNameAsc                  // A-Z
 )
 
+// Modal Action States
+type modalAction int
+
+const (
+	actionNone modalAction = iota
+	actionConfirmDelete
+	actionBlockedDelete
+	actionConfirmUpgrade
+)
+
+type brewFinishedMsg struct {
+	action   string // "upgrade" or "uninstall"
+	itemName string
+	err      error
+}
+
+func runBrewCommand(action string, item *PackageItem) tea.Cmd {
+	var brewArgs []string
+	if action == "upgrade" {
+		brewArgs = []string{"upgrade"}
+		if item.Type == "cask" {
+			brewArgs = append(brewArgs, "--cask")
+		}
+		brewArgs = append(brewArgs, item.Name)
+	} else {
+		brewArgs = []string{"uninstall"}
+		if item.Type == "cask" {
+			brewArgs = append(brewArgs, "--cask")
+		}
+		brewArgs = append(brewArgs, item.Name)
+	}
+
+	shScript := `brew "$@"; rc=$?; echo; read -r -p "Press Enter to return to brew-ls..." _; exit $rc`
+	args := append([]string{"-c", shScript, "_"}, brewArgs...)
+	c := exec.Command("sh", args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return brewFinishedMsg{
+			action:   action,
+			itemName: item.Name,
+			err:      err,
+		}
+	})
+}
+
 // UI Styles
 var (
 	subtleColor   = lipgloss.AdaptiveColor{Light: "#888888", Dark: "#777777"}
@@ -229,22 +333,33 @@ var (
 			BorderForeground(accentColor).
 			Padding(1, 2).
 			Width(68)
+
+	tableSelectedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFFFF")).
+				Background(selectedColor).
+				Bold(true)
+
+	caskRowStyle = lipgloss.NewStyle().
+			Foreground(caskColor)
 )
 
 // Bubble Tea Model
 type model struct {
-	allItems     []PackageItem
-	filtered     []PackageItem
-	table        table.Model
-	searchInput  textinput.Model
-	searching    bool
-	filterType   FilterType
-	sortMode     SortMode
-	width        int
-	height       int
-	showDetails  bool
-	selectedItem *PackageItem
-	showHelp     bool
+	allItems      []PackageItem
+	filtered      []PackageItem
+	table         table.Model
+	searchInput   textinput.Model
+	searching     bool
+	filterType    FilterType
+	sortMode      SortMode
+	width         int
+	height        int
+	showDetails   bool
+	selectedItem  *PackageItem
+	modalAction   modalAction
+	statusMessage string
+	statusIsError bool
+	showHelp      bool
 }
 
 func initialModel(items []PackageItem, initialFilter FilterType) model {
@@ -262,6 +377,7 @@ func initialModel(items []PackageItem, initialFilter FilterType) model {
 		searchInput: ti,
 		width:       100,
 		height:      28,
+		modalAction: actionNone,
 	}
 
 	m.applyFilters()
@@ -294,15 +410,21 @@ func (m *model) applyFilters() {
 	// Sort
 	switch m.sortMode {
 	case SortDateDesc:
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].Epoch > filtered[j].Epoch
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Epoch != filtered[j].Epoch {
+				return filtered[i].Epoch > filtered[j].Epoch
+			}
+			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
 		})
 	case SortDateAsc:
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].Epoch < filtered[j].Epoch
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Epoch != filtered[j].Epoch {
+				return filtered[i].Epoch < filtered[j].Epoch
+			}
+			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
 		})
 	case SortNameAsc:
-		sort.Slice(filtered, func(i, j int) bool {
+		sort.SliceStable(filtered, func(i, j int) bool {
 			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
 		})
 	}
@@ -363,6 +485,8 @@ func (m *model) initTable() {
 		})
 	}
 
+	prevCursor := m.table.Cursor()
+
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
@@ -376,173 +500,23 @@ func (m *model) initTable() {
 		BorderForeground(lipgloss.Color("240")).
 		BorderBottom(true).
 		Bold(true)
-	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Background(selectedColor).
-		Bold(true)
+	s.Selected = tableSelectedStyle
 	t.SetStyles(s)
+
+	if len(rows) > 0 {
+		if prevCursor >= len(rows) {
+			prevCursor = len(rows) - 1
+		}
+		if prevCursor < 0 {
+			prevCursor = 0
+		}
+		t.SetCursor(prevCursor)
+	}
 
 	m.table = t
 }
 
-func (m *model) tableHeight() int {
-	h := m.height - 7 // Room for title, tabs, status bar, and search
-	if h < 6 {
-		return 6
-	}
-	return h
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		if m.width > 50 {
-			m.searchInput.Width = 32
-		}
-		m.initTable()
-		return m, nil
-
-	case tea.KeyMsg:
-		// When details modal is shown
-		if m.showDetails {
-			switch msg.String() {
-			case "esc", "enter", "q":
-				m.showDetails = false
-				return m, nil
-			case "o":
-				if m.selectedItem != nil && m.selectedItem.Homepage != "" {
-					_ = exec.Command("open", m.selectedItem.Homepage).Start()
-				}
-				return m, nil
-			}
-			return m, nil
-		}
-
-		// When help modal is shown
-		if m.showHelp {
-			switch msg.String() {
-			case "esc", "?", "enter", "q":
-				m.showHelp = false
-				return m, nil
-			}
-			return m, nil
-		}
-
-		// When live searching
-		if m.searching {
-			switch msg.String() {
-			case "esc":
-				m.searching = false
-				m.searchInput.Blur()
-				return m, nil
-			case "enter":
-				m.searching = false
-				m.searchInput.Blur()
-				return m, nil
-			default:
-				m.searchInput, cmd = m.searchInput.Update(msg)
-				m.applyFilters()
-				m.initTable()
-				return m, cmd
-			}
-		}
-
-		// Normal table navigation
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-
-		case "/":
-			m.searching = true
-			m.searchInput.Focus()
-			return m, textinput.Blink
-
-		case "esc":
-			if m.searchInput.Value() != "" {
-				m.searchInput.SetValue("")
-				m.applyFilters()
-				m.initTable()
-			}
-
-		case "tab", "t":
-			// Cycle filter: All -> Formula -> Cask -> All
-			switch m.filterType {
-			case FilterAll:
-				m.filterType = FilterFormula
-			case FilterFormula:
-				m.filterType = FilterCask
-			case FilterCask:
-				m.filterType = FilterAll
-			}
-			m.applyFilters()
-			m.initTable()
-
-		case "s", "d":
-			// Toggle sort: Date Desc <-> Date Asc
-			if m.sortMode == SortDateDesc {
-				m.sortMode = SortDateAsc
-			} else {
-				m.sortMode = SortDateDesc
-			}
-			m.applyFilters()
-			m.initTable()
-
-		case "n":
-			if m.sortMode == SortNameAsc {
-				m.sortMode = SortDateDesc
-			} else {
-				m.sortMode = SortNameAsc
-			}
-			m.applyFilters()
-			m.initTable()
-
-		case "enter":
-			idx := m.table.Cursor()
-			if idx >= 0 && idx < len(m.filtered) {
-				it := m.filtered[idx]
-				m.selectedItem = &it
-				m.showDetails = true
-			}
-			return m, nil
-
-		case "o":
-			idx := m.table.Cursor()
-			if idx >= 0 && idx < len(m.filtered) {
-				it := m.filtered[idx]
-				if it.Homepage != "" {
-					_ = exec.Command("open", it.Homepage).Start()
-				}
-			}
-			return m, nil
-
-		case "?":
-			m.showHelp = !m.showHelp
-			return m, nil
-		}
-	}
-
-	m.table, cmd = m.table.Update(msg)
-	return m, cmd
-}
-
-func (m model) View() string {
-	if m.showDetails && m.selectedItem != nil {
-		return m.viewDetailsModal()
-	}
-
-	if m.showHelp {
-		return m.viewHelpModal()
-	}
-
-	// 1. Header with title & filter indicator
+func (m model) renderHeader() string {
 	title := titleStyle.Render("brew-ls")
 
 	var allBadge, formulaBadge, caskBadge string
@@ -580,7 +554,7 @@ func (m model) View() string {
 	countStr := fmt.Sprintf("%d packages", len(m.filtered))
 	countBadge := lipgloss.NewStyle().Foreground(subtleColor).Render(countStr)
 
-	header := lipgloss.JoinHorizontal(
+	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		title,
 		"  ",
@@ -590,26 +564,501 @@ func (m model) View() string {
 		"  ",
 		countBadge,
 	)
+}
 
+func (m *model) tableHeight() int {
+	h := m.height - 7
+	if h < 6 {
+		return 6
+	}
+	return h
+}
+
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		if m.width > 50 {
+			m.searchInput.Width = 32
+		}
+		m.initTable()
+		return m, nil
+
+	case brewFinishedMsg:
+		m.showDetails = false
+		m.modalAction = actionNone
+		m.selectedItem = nil
+		if msg.err != nil {
+			m.statusMessage = fmt.Sprintf("Error: failed to %s %s: %v", msg.action, msg.itemName, msg.err)
+			m.statusIsError = true
+		} else {
+			if msg.action == "upgrade" {
+				m.statusMessage = fmt.Sprintf("✓ Successfully upgraded %s", msg.itemName)
+			} else {
+				m.statusMessage = fmt.Sprintf("✓ Successfully uninstalled %s", msg.itemName)
+			}
+			m.statusIsError = false
+			newItems, err := loadPackages()
+			if err == nil {
+				m.allItems = newItems
+				m.applyFilters()
+				m.initTable()
+			} else {
+				m.statusMessage += fmt.Sprintf(" (reload error: %v)", err)
+			}
+		}
+		return m, nil
+
+	case tea.MouseMsg:
+		switch msg.Action {
+		case tea.MouseActionPress:
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.statusMessage = ""
+				m.table.MoveUp(1)
+				return m, nil
+			} else if msg.Button == tea.MouseButtonWheelDown {
+				m.statusMessage = ""
+				m.table.MoveDown(1)
+				return m, nil
+			} else if msg.Button == tea.MouseButtonLeft {
+				if m.showDetails {
+					modalW := 68
+					modalH := 18
+					startX := (m.width - modalW) / 2
+					endX := startX + modalW
+					startY := (m.height - modalH) / 2
+					endY := startY + modalH
+					if msg.X < startX || msg.X > endX || msg.Y < startY || msg.Y > endY {
+						if m.modalAction != actionNone {
+							m.modalAction = actionNone
+						} else {
+							m.showDetails = false
+						}
+						return m, nil
+					}
+				} else if !m.searching && !m.showHelp {
+					visibleRow := msg.Y - 5
+					if visibleRow >= 0 && visibleRow < m.tableHeight() {
+						lines := strings.Split(m.table.View(), "\n")
+						if len(lines) > 2 {
+							rendered := lines[2:]
+							pre := strings.SplitN(tableSelectedStyle.Render("\x00"), "\x00", 2)[0]
+							selIdxInView := -1
+							if pre != "" {
+								for i, rLine := range rendered {
+									if strings.HasPrefix(rLine, pre) {
+										selIdxInView = i
+										break
+									}
+								}
+							}
+							if selIdxInView != -1 && visibleRow < len(rendered) {
+								diff := visibleRow - selIdxInView
+								if diff > 0 {
+									m.table.MoveDown(diff)
+								} else if diff < 0 {
+									m.table.MoveUp(-diff)
+								}
+							}
+							idx := m.table.Cursor()
+							if idx >= 0 && idx < len(m.filtered) {
+								it := m.filtered[idx]
+								m.selectedItem = &it
+								m.showDetails = true
+								m.modalAction = actionNone
+								m.statusMessage = ""
+								return m, nil
+							}
+						}
+					}
+				}
+			}
+		}
+
+	case tea.KeyMsg:
+		if m.statusMessage != "" && !m.showDetails {
+			m.statusMessage = ""
+		}
+
+		// When details modal is shown
+		if m.showDetails {
+			switch m.modalAction {
+			case actionBlockedDelete:
+				switch msg.String() {
+				case "esc", "enter", "q", "x", "d":
+					m.modalAction = actionNone
+					return m, nil
+				}
+				return m, nil
+
+			case actionConfirmDelete:
+				switch msg.String() {
+				case "y", "Y":
+					if m.selectedItem != nil {
+						return m, runBrewCommand("uninstall", m.selectedItem)
+					}
+					m.modalAction = actionNone
+					return m, nil
+				case "n", "N", "esc", "q":
+					m.modalAction = actionNone
+					return m, nil
+				}
+				return m, nil
+
+			case actionConfirmUpgrade:
+				switch msg.String() {
+				case "y", "Y":
+					if m.selectedItem != nil {
+						return m, runBrewCommand("upgrade", m.selectedItem)
+					}
+					m.modalAction = actionNone
+					return m, nil
+				case "n", "N", "esc", "q":
+					m.modalAction = actionNone
+					return m, nil
+				}
+				return m, nil
+
+			default:
+				switch msg.String() {
+				case "esc", "enter", "q":
+					m.showDetails = false
+					m.modalAction = actionNone
+					return m, nil
+				case "o":
+					if m.selectedItem != nil && m.selectedItem.Homepage != "" {
+						_ = exec.Command("open", m.selectedItem.Homepage).Start()
+					}
+					return m, nil
+				case "u":
+					if m.selectedItem != nil {
+						m.modalAction = actionConfirmUpgrade
+					}
+					return m, nil
+				case "x", "d":
+					if m.selectedItem != nil {
+						if len(m.selectedItem.RequiredBy) > 0 {
+							m.modalAction = actionBlockedDelete
+						} else {
+							m.modalAction = actionConfirmDelete
+						}
+					}
+					return m, nil
+				}
+				return m, nil
+			}
+		}
+
+		// When help modal is shown
+		if m.showHelp {
+			switch msg.String() {
+			case "esc", "?", "enter", "q":
+				m.showHelp = false
+				return m, nil
+			}
+			return m, nil
+		}
+
+		// When live searching
+		if m.searching {
+			switch msg.String() {
+			case "esc":
+				m.searching = false
+				m.searchInput.Blur()
+				return m, nil
+			case "enter":
+				m.searching = false
+				m.searchInput.Blur()
+				return m, nil
+			default:
+				m.searchInput, cmd = m.searchInput.Update(msg)
+				m.applyFilters()
+				m.initTable()
+				return m, cmd
+			}
+		}
+
+		// Normal table navigation
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+
+		case "/":
+			m.statusMessage = ""
+			m.searching = true
+			m.searchInput.Focus()
+			return m, textinput.Blink
+
+		case "esc":
+			m.statusMessage = ""
+			if m.searchInput.Value() != "" {
+				m.searchInput.SetValue("")
+				m.applyFilters()
+				m.initTable()
+			}
+
+		case "tab", "t":
+			m.statusMessage = ""
+			// Cycle filter: All -> Formula -> Cask -> All
+			switch m.filterType {
+			case FilterAll:
+				m.filterType = FilterFormula
+			case FilterFormula:
+				m.filterType = FilterCask
+			case FilterCask:
+				m.filterType = FilterAll
+			}
+			m.applyFilters()
+			m.initTable()
+
+		case "s", "d":
+			m.statusMessage = ""
+			// Toggle sort: Date Desc <-> Date Asc
+			if m.sortMode == SortDateDesc {
+				m.sortMode = SortDateAsc
+			} else {
+				m.sortMode = SortDateDesc
+			}
+			m.applyFilters()
+			m.initTable()
+
+		case "n":
+			m.statusMessage = ""
+			if m.sortMode == SortNameAsc {
+				m.sortMode = SortDateDesc
+			} else {
+				m.sortMode = SortNameAsc
+			}
+			m.applyFilters()
+			m.initTable()
+
+		case "enter":
+			m.statusMessage = ""
+			idx := m.table.Cursor()
+			if idx >= 0 && idx < len(m.filtered) {
+				it := m.filtered[idx]
+				m.selectedItem = &it
+				m.showDetails = true
+				m.modalAction = actionNone
+			}
+			return m, nil
+
+		case "o":
+			m.statusMessage = ""
+			idx := m.table.Cursor()
+			if idx >= 0 && idx < len(m.filtered) {
+				it := m.filtered[idx]
+				if it.Homepage != "" {
+					_ = exec.Command("open", it.Homepage).Start()
+				}
+			}
+			return m, nil
+
+		case "?":
+			m.statusMessage = ""
+			m.showHelp = !m.showHelp
+			return m, nil
+		}
+	}
+
+	m.table, cmd = m.table.Update(msg)
+	return m, cmd
+}
+
+func (m model) View() string {
+	if m.showDetails && m.selectedItem != nil {
+		return m.viewDetailsModal()
+	}
+
+	if m.showHelp {
+		return m.viewHelpModal()
+	}
+
+	// 1. Header with title & filter indicator
+	header := m.renderHeader()
+	headerBlock := lipgloss.JoinVertical(lipgloss.Left, "", " "+header, "")
 	// 2. Table view
-	tableView := m.table.View()
+	tableView := m.renderTableView()
 
-	// 3. Bottom bar: search or shortcuts
+	// 3. Bottom bar: search, status message, or shortcuts
 	var bottomBar string
 	if m.searching || m.searchInput.Value() != "" {
 		searchLabel := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#F59E0B")).Render("Search:")
 		inputView := m.searchInput.View()
 		tip := lipgloss.NewStyle().Foreground(subtleColor).Render(" (Esc to clear, Enter to return to table)")
 		bottomBar = lipgloss.JoinHorizontal(lipgloss.Center, " ", searchLabel, " ", inputView, tip)
+	} else if m.statusMessage != "" {
+		color := lipgloss.Color("#22C55E")
+		if m.statusIsError {
+			color = lipgloss.Color("#EF4444")
+		}
+		statusBadge := lipgloss.NewStyle().Bold(true).Foreground(color).Render(" " + m.statusMessage)
+		tip := lipgloss.NewStyle().Foreground(subtleColor).Render("  (press any key to dismiss)")
+		bottomBar = lipgloss.JoinHorizontal(lipgloss.Center, statusBadge, tip)
 	} else {
-		shortcuts := "↑/↓: navigate • /: search • tab: filter • s: sort date • n: sort name • enter: details • o: open homepage • ?: help • q: quit"
+		shortcuts := "↑/↓: navigate • /: search • tab: filter • s: sort date • n: sort name • enter: details • ?: help • q: quit"
 		bottomBar = statusStyle.Render(shortcuts)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, "\n", " "+header, "\n", tableView, "\n", bottomBar)
+	return lipgloss.JoinVertical(lipgloss.Left, headerBlock, tableView, "", bottomBar)
+}
+func (m model) renderTableView() string {
+	view := m.table.View()
+	lines := strings.Split(view, "\n")
+	if len(lines) <= 2 {
+		return view
+	}
+
+	header := lines[:2]
+	rendered := lines[2:]
+	pre := strings.SplitN(tableSelectedStyle.Render("\x00"), "\x00", 2)[0]
+	selIdxInView := -1
+	if pre != "" {
+		for i, rLine := range rendered {
+			if strings.HasPrefix(rLine, pre) {
+				selIdxInView = i
+				break
+			}
+		}
+	}
+
+	result := make([]string, 0, len(lines))
+	result = append(result, header...)
+
+	for i, rLine := range rendered {
+		if strings.TrimSpace(rLine) == "" {
+			result = append(result, rLine)
+			continue
+		}
+		if i == selIdxInView {
+			result = append(result, rLine)
+			continue
+		}
+		if selIdxInView != -1 {
+			itemIdx := m.table.Cursor() + (i - selIdxInView)
+			if itemIdx >= 0 && itemIdx < len(m.filtered) {
+				if m.filtered[itemIdx].Type == "cask" {
+					result = append(result, caskRowStyle.Render(rLine))
+					continue
+				}
+			}
+		}
+		result = append(result, rLine)
+	}
+
+	return strings.Join(result, "\n")
+}
+
+func (m model) viewConfirmDeleteModal() string {
+	it := m.selectedItem
+	nameStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#EF4444")).Padding(0, 1)
+	title := nameStyle.Render("Uninstall " + it.Name)
+
+	caskFlag := ""
+	if it.Type == "cask" {
+		caskFlag = "--cask "
+	}
+	cmdPreview := fmt.Sprintf("brew uninstall %s%s", caskFlag, it.Name)
+
+	content := fmt.Sprintf(
+		"%s\n\n"+
+			"Are you sure you want to delete this package?\n\n"+
+			"%s %s\n"+
+			"%s %s\n\n"+
+			"%s\n"+
+			"  %s\n\n"+
+			"%s",
+		title,
+		lipgloss.NewStyle().Bold(true).Render("Package:       "), it.Name,
+		lipgloss.NewStyle().Bold(true).Render("Type:          "), strings.ToUpper(it.Type[:1])+it.Type[1:],
+		lipgloss.NewStyle().Foreground(subtleColor).Render("Command to execute:"),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#F59E0B")).Render(cmdPreview),
+		lipgloss.NewStyle().Bold(true).Render("[y] Yes, uninstall  •  [n / Esc] Cancel"),
+	)
+	box := modalBoxStyle.Copy().BorderForeground(lipgloss.Color("#EF4444")).Render(content)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m model) viewBlockedDeleteModal() string {
+	it := m.selectedItem
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#F59E0B")).Padding(0, 1).Render("Cannot Delete " + it.Name)
+
+	var depList strings.Builder
+	maxShow := 8
+	for i, dep := range it.RequiredBy {
+		if i >= maxShow {
+			depList.WriteString(fmt.Sprintf("  ... and %d more packages\n", len(it.RequiredBy)-maxShow))
+			break
+		}
+		depList.WriteString(fmt.Sprintf("  • %s\n", dep))
+	}
+
+	content := fmt.Sprintf(
+		"%s\n\n"+
+			"%s is required by %d installed package(s):\n\n"+
+			"%s\n"+
+			"Uninstalling this formula would break these dependent packages.\n"+
+			"Homebrew will refuse removal unless forced.\n\n"+
+			"%s\n\n"+
+			"%s",
+		title,
+		lipgloss.NewStyle().Bold(true).Render(it.Name),
+		len(it.RequiredBy),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#EF4444")).Render(depList.String()),
+		lipgloss.NewStyle().Foreground(subtleColor).Render("To remove this package, you must first uninstall the dependent packages."),
+		lipgloss.NewStyle().Bold(true).Render("[Esc / Enter] Back to details"),
+	)
+	box := modalBoxStyle.Copy().BorderForeground(lipgloss.Color("#F59E0B")).Render(content)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+}
+
+func (m model) viewConfirmUpgradeModal() string {
+	it := m.selectedItem
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(lipgloss.Color("#2563EB")).Padding(0, 1).Render("Upgrade " + it.Name)
+
+	caskFlag := ""
+	if it.Type == "cask" {
+		caskFlag = "--cask "
+	}
+	cmdPreview := fmt.Sprintf("brew upgrade %s%s", caskFlag, it.Name)
+
+	content := fmt.Sprintf(
+		"%s\n\n"+
+			"Upgrade this package to the latest version?\n\n"+
+			"%s %s\n"+
+			"%s %s\n\n"+
+			"%s\n"+
+			"  %s\n\n"+
+			"%s",
+		title,
+		lipgloss.NewStyle().Bold(true).Render("Package:        "), it.Name,
+		lipgloss.NewStyle().Bold(true).Render("Current Version:"), it.Version,
+		lipgloss.NewStyle().Foreground(subtleColor).Render("Command to execute:"),
+		lipgloss.NewStyle().Foreground(lipgloss.Color("#38BDF8")).Render(cmdPreview),
+		lipgloss.NewStyle().Bold(true).Render("[y] Yes, upgrade  •  [n / Esc] Cancel"),
+	)
+	box := modalBoxStyle.Copy().BorderForeground(lipgloss.Color("#2563EB")).Render(content)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
 }
 
 func (m model) viewDetailsModal() string {
+	if m.modalAction == actionConfirmDelete {
+		return m.viewConfirmDeleteModal()
+	}
+	if m.modalAction == actionBlockedDelete {
+		return m.viewBlockedDeleteModal()
+	}
+	if m.modalAction == actionConfirmUpgrade {
+		return m.viewConfirmUpgradeModal()
+	}
+
 	it := m.selectedItem
 	typeBadge := badgeFormula.Render("Formula")
 	if it.Type == "cask" {
@@ -621,12 +1070,28 @@ func (m model) viewDetailsModal() string {
 		installedStr = "Unknown"
 	}
 
+	var depSection string
+	if len(it.RequiredBy) > 0 {
+		depSummary := strings.Join(it.RequiredBy, ", ")
+		if len(it.RequiredBy) > 6 {
+			depSummary = strings.Join(it.RequiredBy[:6], ", ") + fmt.Sprintf(" ... (+%d more)", len(it.RequiredBy)-6)
+		}
+		depSection = lipgloss.NewStyle().Foreground(lipgloss.Color("#F59E0B")).Render(
+			fmt.Sprintf("⚠️  Required by (%d): %s\n   (Cannot safely delete while dependents are installed)", len(it.RequiredBy), depSummary),
+		)
+	} else if it.Type == "formula" {
+		depSection = lipgloss.NewStyle().Foreground(lipgloss.Color("#22C55E")).Render("✓  No other installed packages depend on this.")
+	}
+
+	actions := lipgloss.NewStyle().Bold(true).Render("Keys: [u] Upgrade • [x] Delete • [o] Homepage • [Esc/Enter] Close")
+
 	content := fmt.Sprintf(
 		"%s  %s\n\n"+
 			"%s %s\n"+
 			"%s %s\n"+
 			"%s %s\n"+
 			"%s %s\n\n"+
+			"%s\n\n"+
 			"%s\n\n"+
 			"%s",
 		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Background(accentColor).Padding(0, 1).Render(it.Name),
@@ -635,7 +1100,8 @@ func (m model) viewDetailsModal() string {
 		lipgloss.NewStyle().Bold(true).Render("First Installed:"), installedStr,
 		lipgloss.NewStyle().Bold(true).Render("Homepage:       "), it.Homepage,
 		lipgloss.NewStyle().Bold(true).Render("Description:    "), it.Desc,
-		lipgloss.NewStyle().Foreground(subtleColor).Render("Keys: [o] Open homepage in browser • [Esc/Enter] Close"),
+		depSection,
+		actions,
 		"",
 	)
 
@@ -644,11 +1110,14 @@ func (m model) viewDetailsModal() string {
 }
 
 func (m model) viewHelpModal() string {
-	helpText := `Keyboard Shortcuts
+	helpText := `Keyboard & Mouse Shortcuts
 
-  Navigation
+  Navigation & Mouse
     ↑ / k       Move selection up
     ↓ / j       Move selection down
+    Wheel Up    Scroll table up
+    Wheel Down  Scroll table down
+    Click row   Open package details & actions
     Home / g    Jump to top
     End / G     Jump to bottom
 
@@ -661,8 +1130,10 @@ func (m model) viewHelpModal() string {
     s / d       Toggle sort: Newest first ↔ Oldest first
     n           Sort alphabetically (A-Z)
 
-  Actions
-    Enter       View full package details
+  Actions (in Details Modal)
+    Enter       Open details for selected package
+    u           Upgrade package (runs brew upgrade)
+    x / d       Delete package (with reverse-dependency check)
     o           Open package homepage in browser
     ?           Toggle this help overlay
     q / Ctrl+C  Quit brew-ls`
@@ -685,12 +1156,18 @@ func printPlain(items []PackageItem, filter FilterType, reverse bool, asJSON boo
 	}
 
 	if reverse {
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].Epoch < filtered[j].Epoch
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Epoch != filtered[j].Epoch {
+				return filtered[i].Epoch < filtered[j].Epoch
+			}
+			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
 		})
 	} else {
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].Epoch > filtered[j].Epoch
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Epoch != filtered[j].Epoch {
+				return filtered[i].Epoch > filtered[j].Epoch
+			}
+			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
 		})
 	}
 
@@ -715,13 +1192,18 @@ func printPlain(items []PackageItem, filter FilterType, reverse bool, asJSON boo
 	fmt.Printf("%-19s  %-7s  %-*s  %-*s  %s\n",
 		"FIRST INSTALLED", "TYPE", maxName, "NAME", maxVer, "VERSION", "DESCRIPTION")
 
+	isTTY := term.IsTerminal(int(os.Stdout.Fd()))
 	for _, it := range filtered {
 		dateStr := it.InstalledAt.Format("2006-01-02 15:04:05")
 		if it.Epoch <= 0 {
 			dateStr = "unknown"
 		}
-		fmt.Printf("%-19s  %-7s  %-*s  %-*s  %s\n",
+		line := fmt.Sprintf("%-19s  %-7s  %-*s  %-*s  %s",
 			dateStr, it.Type, maxName, it.Name, maxVer, it.Version, it.Desc)
+		if it.Type == "cask" && isTTY {
+			line = caskRowStyle.Render(line)
+		}
+		fmt.Println(line)
 	}
 }
 
