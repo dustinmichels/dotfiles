@@ -9,7 +9,9 @@ node = "latest"
 "npm:@google/clasp" = "latest"
 "npm:@vue/language-server" = "latest"
 "npm:clerk" = "latest"
-"npm:netlify-cli" = { version = "latest", trust_policy_excludes = ["@netlify/serverless-functions-api"] }
+"npm:netlify-cli" = { version = "latest", trust_policy_excludes = [
+  "@netlify/serverless-functions-api",
+] }
 "npm:oxfmt" = "latest"
 "npm:prettier" = "latest"
 "npm:typescript-language-server" = "latest"
@@ -21,6 +23,6 @@ uv = "latest"
 zoxide = "latest"
 
 [settings]
-# Tells mise to look for a uv.lock or pyproject.toml 
+# Tells mise to look for a uv.lock or pyproject.toml
 # and automatically activate the .venv using uv
 python.uv_venv_auto = true
