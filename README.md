@@ -4,17 +4,9 @@
 
 I symlink my dotfiles with copies in this repo.
 
-When setting up a new computer, clone the repo, then run `./setup_new_computer.sh` to copy files to their proper place.
+When setting up a new computer (or linking existing dotfiles), clone the repo and run:
 
 ```sh
-# copy files to home directory
-./scripts/setup_new_computer.sh
-```
-
-Then (or alternatively) to symlink existing dotfiles:
-
-```sh
-# link files in home directory to repo
 ./scripts/symlink.sh
 ```
 
@@ -24,6 +16,9 @@ Periodically backup homebrew by running:
 
 ```sh
 brew bundle dump --global --force
+
+# or, my custom cmd
+brew-dump
 ```
 
 This outputs Brew programs to `~/.Brewfile`.

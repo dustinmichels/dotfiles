@@ -1,6 +1,8 @@
 #!/bin/zsh
 
-# Symlink selected dotfiles in home directory to this git repo.
+# Symlink dotfiles from this git repo to the home directory.
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 files=(
   .zshrc
@@ -36,12 +38,26 @@ files=(
 )
 
 for val in "${files[@]}"; do
-  if [[ ! -e "$HOME/$val" ]]; then
-    echo "  ⏭️  $val (not found)"
+  # If file exists in $HOME but not in repo, copy it into repo first
+  if [[ -e "$HOME/$val" && ! -L "$HOME/$val" && ! -e "$REPO_DIR/home/$val" ]]; then
+    mkdir -p "$REPO_DIR/home/$(dirname "$val")"
+    cp "$HOME/$val" "$REPO_DIR/home/$val"
+  fi
+
+  if [[ ! -e "$REPO_DIR/home/$val" ]]; then
+    echo "  ⏭️  $val (not found in repo)"
     continue
   fi
-  mkdir -p "home/$(dirname "$val")"
-  rm -f "home/$val"
-  ln "$HOME/$val" "home/$val"
+
+  mkdir -p "$HOME/$(dirname "$val")"
+
+  # Back up if $HOME file is a regular file that differs from repo
+  if [[ -f "$HOME/$val" && ! -L "$HOME/$val" ]] && ! cmp -s "$HOME/$val" "$REPO_DIR/home/$val"; then
+    mv "$HOME/$val" "$HOME/$val.bak"
+    echo "  ⚠️  $val differed, backed up to $val.bak"
+  fi
+
+  rm -f "$HOME/$val"
+  ln -s "$REPO_DIR/home/$val" "$HOME/$val"
   echo "  ✅ $val"
 done
