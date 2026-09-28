@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # Exit immediately if a command exits with a non-zero status
 set -e
@@ -8,17 +8,17 @@ echo "🍏 Starting Homebrew reset process..."
 # 1. Verify the global Brewfile exists in the home directory before doing anything drastic
 BREWFILE="$HOME/.Brewfile"
 if [ ! -f "$BREWFILE" ]; then
-    echo "❌ Error: Brewfile not found at $BREWFILE."
-    echo "Please run 'brew bundle dump --global' first."
-    exit 1
+  echo "❌ Error: Brewfile not found at $BREWFILE."
+  echo "Please run 'brew bundle dump --global' first."
+  exit 1
 fi
 
 echo "⚠️  This will uninstall ALL Homebrew packages, casks, and taps."
 read -p "Are you sure you want to continue? (y/N) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Operation cancelled."
-    exit 1
+  echo "Operation cancelled."
+  exit 1
 fi
 
 # 2. Uninstall all installed formulae and casks
