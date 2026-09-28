@@ -5,18 +5,14 @@
   "workbench.browser.openLocalhostLinks": false,
 
   // ----- EDITOR CONFIGURATION -----
-  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports.oxc": "explicit"
-  },
-  "oxc.fmt.configPath": ".oxfmtrc.json",
   "editor.fontFamily": "FiraCode Nerd Font",
   "editor.fontLigatures": true,
   "editor.letterSpacing": 1,
   "editor.stickyScroll.enabled": true,
-  "editor.inlineSuggest.enabled": true,
   "editor.semanticHighlighting.enabled": true,
+  "oxc.fmt.configPath": ".oxfmtrc.json",
 
   // ----- JUPYTER & NOTEBOOK CONFIGURATION -----
   "notebook.formatOnSave.enabled": true,
@@ -25,7 +21,6 @@
   },
 
   // ----- RUFF CONFIGURATION -----
-  "ruff.nativeServer": "on",
   "ruff.lint.select": ["I"],
   "ruff.format.preview": true,
 
@@ -33,19 +28,13 @@
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "*.ts": "${capture}.js, ${capture}.typegen.ts",
-    "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
-    "*.jsx": "${capture}.js",
     "*.tsx": "${capture}.ts, ${capture}.typegen.ts",
-    "tsconfig.json": "tsconfig.*.json",
-    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml",
     "*.mts": "${capture}.typegen.ts",
     "*.cts": "${capture}.typegen.ts"
   },
   "files.associations": {
-    ".env": "properties",
-    ".env.*": "properties",
-    ".Brewfile": "shellscript",
-    ".Brewfile.local": "shellscript",
+    ".env*": "properties",
+    ".Brewfile*": "shellscript",
     ".zshrc.local": "shellscript",
     ".shopifyignore": "ignore"
   },
@@ -54,12 +43,8 @@
     "**/.ipynb_checkpoints": true,
     "**/.mypy_cache": true,
     "**/.pytest_cache": true,
-    ".nox/": true,
-    ".idea/": true,
-    "**/.classpath": true,
-    "**/.project": true,
-    "**/.settings": true,
-    "**/.factorypath": true,
+    "**/.nox": true,
+    "**/.idea": true,
     "**/.obsidian": true
   },
 
@@ -69,14 +54,12 @@
   // ----- EXTENSIONS & TOOLS -----
   "git.autofetch": true,
   "github.copilot.enable": {
-    "*": true,
-    "plaintext": false,
     "markdown": true,
-    "scminput": false,
     "json": false
   },
   "github.copilot.nextEditSuggestions.enabled": true,
   "go.toolsManagement.autoUpdate": true,
+  "redhat.telemetry.enabled": false,
   "cSpell.userWords": [
     "Choropleth",
     "conda",
@@ -97,25 +80,48 @@
     "editor.defaultFormatter": "golang.go"
   },
   "[html]": {
-    "editor.tabSize": 2,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.tabSize": 2
   },
   "[javascript]": {
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.oxc": "explicit"
+    }
+  },
+  "[javascriptreact]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.oxc": "explicit"
+    }
+  },
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.oxc": "explicit"
+    }
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.oxc": "explicit"
+    }
   },
   "[markdown]": {
     "editor.quickSuggestions": {
-      "other": true,
-      "comments": true,
-      "strings": true
-    },
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+      "other": "on",
+      "comments": "on",
+      "strings": "on"
+    }
   },
   "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
       "source.organizeImports.ruff": "explicit"
-    },
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    }
   },
   "[shellscript]": {
     "editor.tabSize": 2
@@ -123,17 +129,7 @@
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml"
   },
-  "[typescript]": {
-    "editor.tabSize": 2
-  },
-  "[typescriptreact]": {
-    "editor.tabSize": 2
-  },
   "[liquid]": {
     "editor.defaultFormatter": "Shopify.theme-check-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "redhat.telemetry.enabled": true
+  }
 }

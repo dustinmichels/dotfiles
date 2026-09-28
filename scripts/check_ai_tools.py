@@ -10,7 +10,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
@@ -31,8 +30,7 @@ def status_badge(ok, note=""):
 def run(cmd, timeout=5, check=False):
     return subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         timeout=timeout,
         check=check,
@@ -89,7 +87,7 @@ def main():
             disabled = "codegraph" in d.get("disabledServers", [])
             omp_mcp_ok = has_cg and not disabled
             note = "configured & enabled" if omp_mcp_ok else "not enabled in mcp.json"
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, AttributeError) as e:
             note = f"JSON error: {e}"
     else:
         note = "File missing"
@@ -114,6 +112,7 @@ def main():
             text=True,
             capture_output=True,
             timeout=3,
+            check=False,
         )
         claude_hook_ok = "rtk git status" in res.stdout
         note = (
@@ -121,7 +120,7 @@ def main():
             if claude_hook_ok
             else f"unexpected response: {res.stdout.strip()[:60]}"
         )
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         note = f"Hook execution error: {e}"
     print(f"  RTK Hook           : {status_badge(claude_hook_ok, note)}")
 
@@ -138,7 +137,7 @@ def main():
                 if claude_mcp_ok
                 else "missing in ~/.claude.json"
             )
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, AttributeError) as e:
             note = f"JSON error: {e}"
     else:
         note = "~/.claude.json not found"
@@ -149,7 +148,7 @@ def main():
         p_res = run(["codegraph", "prompt-hook"], timeout=3)
         prompt_hook_ok = p_res.returncode == 0
         note = "exited 0" if prompt_hook_ok else f"exit code {p_res.returncode}"
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         prompt_hook_ok = False
         note = str(e)
     print(f"  CodeGraph Hook     : {status_badge(prompt_hook_ok, note)}")
@@ -175,7 +174,12 @@ def main():
                 }
             )
             res = subprocess.run(
-                [gem_hook], input=payload, text=True, capture_output=True, timeout=3
+                [gem_hook],
+                input=payload,
+                text=True,
+                capture_output=True,
+                timeout=3,
+                check=False,
             )
             data = json.loads(res.stdout)
             gem_hook_ok = (
@@ -186,7 +190,12 @@ def main():
                 if gem_hook_ok
                 else f"unexpected output: {res.stdout.strip()[:60]}"
             )
-        except Exception as e:
+        except (
+            subprocess.SubprocessError,
+            OSError,
+            json.JSONDecodeError,
+            AttributeError,
+        ) as e:
             note = f"execution failed: {e}"
     else:
         note = "Script missing or not executable"
@@ -205,7 +214,7 @@ def main():
                 if hooks_registered
                 else "rtk-rewrite not found in hooks.json"
             )
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, TypeError) as e:
             note = f"JSON error: {e}"
     else:
         note = "~/.gemini/config/hooks.json missing"
@@ -224,7 +233,7 @@ def main():
                 note = f"points to valid binary: {cg_cmd}"
             else:
                 note = f"points to dead path: {cg_cmd}"
-        except Exception as e:
+        except (OSError, json.JSONDecodeError, AttributeError) as e:
             note = f"JSON error: {e}"
     else:
         note = "~/.gemini/config/mcp_config.json missing"
