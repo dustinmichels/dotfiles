@@ -12,6 +12,9 @@ files=(
   .gitignore_global
   .Brewfile
 
+  # VSCode
+  "Library/Application Support/Code/User/settings.json"
+
   # config
   .config/starship.toml
   .config/mise/config.toml
@@ -32,13 +35,13 @@ files=(
   .omp/agent/extensions/rtk.ts
 )
 
-for val in $files; do
-  if [[ ! -e ~/$val ]]; then
+for val in "${files[@]}"; do
+  if [[ ! -e "$HOME/$val" ]]; then
     echo "  ⏭️  $val (not found)"
     continue
   fi
-  mkdir -p home/$(dirname $val)
-  rm -f home/$val
-  ln ~/$val home/$val
+  mkdir -p "home/$(dirname "$val")"
+  rm -f "home/$val"
+  ln "$HOME/$val" "home/$val"
   echo "  ✅ $val"
 done
