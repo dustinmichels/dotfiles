@@ -4,6 +4,9 @@
 #  / /_\__ \ | | | | | (__
 # /____|___/_| |_|_|  \___|
 
+# Prevent duplicate entries in PATH automatically
+typeset -U path PATH
+
 # -------------------------------------------------------------------
 # OH-MY-ZSH
 # -------------------------------------------------------------------
@@ -15,6 +18,7 @@ ZSH_THEME="robbyrussell"
 plugins=(
   git
   mise
+  zoxide
   zsh-autosuggestions
 )
 
@@ -25,48 +29,51 @@ source $ZSH/oh-my-zsh.sh
 # -------------------------------------------------------------------
 
 # */ See external IP address */
-function exip {
-  curl ipecho.net/plain
-  echo
+function exip() {
+  curl -s https://icanhazip.com
 }
 
 # */ Create a new directory and enter it */
 function mkd() {
-  mkdir -p "$@" && cd "$@"
+  mkdir -p "$@" && cd "${@: -1}"
 }
 
-# */ See 10 biggest items */
+# */ See 10 biggest items in current directory (top-level only) */
 function biggest() {
-  du -ah * | sort -rh | head -10
+  du -sh * .*(N) 2>/dev/null | sort -rh | head -10
 }
 
-# */ Source various env files (Thanks, Taylor)
+# */ Source env files (Thanks, Taylor!)
 # */
 # */ Example usage:
 # */    envup && go run .
 # */    envup production && go run .
 function envup() {
-  file=$([ -z "$1" ] && echo ".env" || echo ".env.$1")
-  [ "$1" = "-f" ] && shift && file=$1
+  local file
+  if [ "$1" = "-f" ]; then
+    file="$2"
+  elif [ -n "$1" ]; then
+    file=".env.$1"
+  else
+    file=".env"
+  fi
   if [ -f "$file" ]; then
-    IFS=$'\n'
-    env_vars=($(sed '/^#.*/d; /^[[:space:]]*$/d; s/^export //' $file))
+    local IFS=$'\n'
+    local v
+    local -a env_vars=($(sed '/^#.*/d; /^[[:space:]]*$/d; s/^export //' "$file"))
     for v in $env_vars; do
-      eval export $v
+      eval export "$v"
     done
   else
-    echo "$file does not exist"
+    echo "$file does not exist" >&2
     return 1
   fi
 }
 
-# gi - gitignore
-# eg,
-#     gi vue,python,macos >> .gitignore
-function gi() { curl -sLw "\n" https://www.toptal.com/developers/gitignore/api/$@; }
-
-# cleanup old sessions and storage for oh-my-pi (see functions/omp-clean)
-alias ompgc=omp-clean
+# /* gi - gitignore
+# /*
+# /* eg, gi vue,python,macos >> .gitignore
+function gi() { curl -sLw "\n" "https://www.toptal.com/developers/gitignore/api/$*"; }
 
 # delegate global npm installs to mise
 npm() {
@@ -86,23 +93,14 @@ npm() {
 # PATH & TOOLS
 # -------------------------------------------------------------------
 
-# Added by Antigravity
-export PATH="/Users/dustinmichels/.antigravity/antigravity/bin:$PATH"
+# My own dev tools / functions (functions/Makefile)
+export PATH="$HOME/dev/bin:$PATH"
 
-# my personal dev tools (functions)
-export PATH="$PATH:$HOME/dev/bin"
-
-# eval "$(mise activate zsh)"
-eval "$(zoxide init zsh)"
-
-# Claude
+# User binaries (uv tools, claude)
 export PATH="$PATH:$HOME/.local/bin"
 
-# Bun (for OMP)
-export PATH="/Users/dustinmichels/.bun/bin:$PATH"
+# Bun global tools (omp)
+export PATH="$PATH:$HOME/.bun/bin"
 
-# bun completions
-[ -s "/Users/dustinmichels/.bun/_bun" ] && source "/Users/dustinmichels/.bun/_bun"
-
-# cleanup path
-typeset -U PATH
+# Bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
