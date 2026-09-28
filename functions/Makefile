@@ -1,4 +1,4 @@
-# Output directory — must be on PATH (see ~/.zshrc: export PATH="$PATH:$HOME/dev/bin")
+# Output directory — must be on PATH (see ~/.zshrc PATH & TOOLS: export PATH="$HOME/dev/bin:$PATH")
 BIN := $(HOME)/dev/bin
 
 # Discover all subdirectories as tool names.
