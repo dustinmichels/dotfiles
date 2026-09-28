@@ -5,8 +5,8 @@
   "workbench.browser.openLocalhostLinks": false,
 
   // ----- EDITOR CONFIGURATION -----
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": false,
   "editor.fontFamily": "FiraCode Nerd Font",
   "editor.fontLigatures": true,
   "editor.letterSpacing": 1,
