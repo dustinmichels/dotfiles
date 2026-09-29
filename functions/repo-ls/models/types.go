@@ -2,6 +2,8 @@ package models
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -173,5 +175,48 @@ func (s SortMode) String() string {
 		return "Dirty First"
 	default:
 		return "Path"
+	}
+}
+
+// SortRepos sorts a slice of repos in-place according to the given SortMode.
+func SortRepos(repos []*Repo, mode SortMode) {
+	switch mode {
+	case SortName:
+		sort.Slice(repos, func(i, j int) bool {
+			return strings.ToLower(repos[i].Name) < strings.ToLower(repos[j].Name)
+		})
+	case SortModified:
+		sort.Slice(repos, func(i, j int) bool {
+			timeI := repos[i].LastModified
+			if timeI.IsZero() && repos[i].LastCommit != nil {
+				timeI = repos[i].LastCommit.Date
+			}
+			timeJ := repos[j].LastModified
+			if timeJ.IsZero() && repos[j].LastCommit != nil {
+				timeJ = repos[j].LastCommit.Date
+			}
+			if !timeI.Equal(timeJ) {
+				return timeI.After(timeJ)
+			}
+			return repos[i].RelPath < repos[j].RelPath
+		})
+	case SortCreated:
+		sort.Slice(repos, func(i, j int) bool {
+			if !repos[i].DateCreated.Equal(repos[j].DateCreated) {
+				return repos[i].DateCreated.After(repos[j].DateCreated)
+			}
+			return repos[i].RelPath < repos[j].RelPath
+		})
+	case SortDirtyFirst:
+		sort.Slice(repos, func(i, j int) bool {
+			if repos[i].HasUncommitted != repos[j].HasUncommitted {
+				return repos[i].HasUncommitted
+			}
+			return repos[i].RelPath < repos[j].RelPath
+		})
+	default: // SortPath
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].RelPath < repos[j].RelPath
+		})
 	}
 }
