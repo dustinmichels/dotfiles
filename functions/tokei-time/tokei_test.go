@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestMetricCycling(t *testing.T) {
@@ -282,7 +285,7 @@ func TestModelViewHorizontalAndVertical(t *testing.T) {
 	snapshots := []*CommitSnapshot{snap1, snap2}
 	ComputeDiffs(snapshots)
 
-	m := NewModel(".", snapshots, 10)
+	m := NewModel(".", snapshots, 10, GroupCommit)
 	m.width = 120
 	m.height = 35
 
@@ -316,7 +319,7 @@ func TestModelKeyNavigation(t *testing.T) {
 	snapshots := []*CommitSnapshot{snap1, snap2}
 	ComputeDiffs(snapshots)
 
-	m := NewModel(".", snapshots, 10)
+	m := NewModel(".", snapshots, 10, GroupCommit)
 	m.width = 100
 	m.height = 30
 
@@ -344,8 +347,17 @@ func TestModelKeyNavigation(t *testing.T) {
 	if m.diffMode != DiffLatest {
 		t.Errorf("expected diffMode to be DiffLatest after 'd'")
 	}
-}
 
+	// Summary mode toggle ('s')
+	if m.activeGroup != GroupCommit {
+		t.Errorf("expected initial activeGroup GroupCommit")
+	}
+	mUpdated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = mUpdated.(Model)
+	if m.activeGroup != GroupDay {
+		t.Errorf("expected activeGroup to be GroupDay after 's', got %v", m.activeGroup)
+	}
+}
 func TestRealRepoSmoke(t *testing.T) {
 	root, err := GetGitRoot(".")
 	if err != nil {
@@ -365,5 +377,401 @@ func TestRealRepoSmoke(t *testing.T) {
 	lastSnap := snapshots[len(snapshots)-1]
 	if lastSnap.Total.Lines == 0 && lastSnap.Total.Files == 0 {
 		t.Errorf("expected non-zero total lines/files in last snapshot")
+	}
+}
+
+func TestGroupModeCycling(t *testing.T) {
+	start := GroupCommit
+	curr := start
+	for range len(GroupModeList) {
+		curr = NextGroupMode(curr)
+	}
+	if curr != start {
+		t.Errorf("expected full cycle to return to %v, got %v", start, curr)
+	}
+
+	// Test PrevGroupMode
+	prev := PrevGroupMode(GroupCommit)
+	if prev != GroupYear {
+		t.Errorf("expected PrevGroupMode(GroupCommit) to be GroupYear, got %v", prev)
+	}
+
+	// Test ParseGroupMode
+	modes := []string{"commit", "day", "week", "month", "year"}
+	for _, modeStr := range modes {
+		gm, err := ParseGroupMode(modeStr)
+		if err != nil {
+			t.Errorf("failed to parse group mode %q: %v", modeStr, err)
+		}
+		if strings.ToLower(GroupModeNames[gm]) != modeStr {
+			t.Errorf("mismatch in parsed group mode name: got %s, want %s", GroupModeNames[gm], modeStr)
+		}
+	}
+}
+
+func TestAggregateSnapshots(t *testing.T) {
+	// Create 3 commits on day 1 and 2 commits on day 2
+	t1 := time.Date(2026, 9, 20, 10, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 9, 20, 15, 0, 0, 0, time.UTC)
+	t3 := time.Date(2026, 9, 21, 9, 0, 0, 0, time.UTC)
+	t4 := time.Date(2026, 9, 21, 14, 0, 0, 0, time.UTC)
+
+	s1 := &CommitSnapshot{
+		Hash:      "c1",
+		Timestamp: t1,
+		Languages: map[string]LanguageStats{
+			"Go": {Name: "Go", Code: 100, Lines: 120, Files: 2},
+		},
+		Total: LanguageStats{Code: 100, Lines: 120, Files: 2},
+	}
+	s2 := &CommitSnapshot{
+		Hash:      "c2",
+		Timestamp: t2,
+		Languages: map[string]LanguageStats{
+			"Go": {Name: "Go", Code: 200, Lines: 240, Files: 4},
+		},
+		Total: LanguageStats{Code: 200, Lines: 240, Files: 4},
+	}
+	s3 := &CommitSnapshot{
+		Hash:      "c3",
+		Timestamp: t3,
+		Languages: map[string]LanguageStats{
+			"Go": {Name: "Go", Code: 300, Lines: 350, Files: 5},
+		},
+		Total: LanguageStats{Code: 300, Lines: 350, Files: 5},
+	}
+	s4 := &CommitSnapshot{
+		Hash:      "c4",
+		Timestamp: t4,
+		Languages: map[string]LanguageStats{
+			"Go": {Name: "Go", Code: 500, Lines: 600, Files: 7},
+		},
+		Total: LanguageStats{Code: 500, Lines: 600, Files: 7},
+	}
+
+	raw := []*CommitSnapshot{s1, s2, s3, s4}
+	ComputeDiffs(raw)
+
+	// Aggregate by Day
+	daySummaries := AggregateSnapshots(raw, GroupDay)
+	if len(daySummaries) != 2 {
+		t.Fatalf("expected 2 day summaries, got %d", len(daySummaries))
+	}
+
+	// Day 1 average: (100 + 200)/2 = 150 Code
+	day1 := daySummaries[0]
+	if day1.CommitCount != 2 {
+		t.Errorf("expected 2 commits in day 1, got %d", day1.CommitCount)
+	}
+	if day1.Total.Code != 150 {
+		t.Errorf("expected average code 150 on day 1, got %d", day1.Total.Code)
+	}
+	if day1.Total.Lines != 180 {
+		t.Errorf("expected average lines 180 on day 1, got %d", day1.Total.Lines)
+	}
+	if day1.Total.Files != 3 {
+		t.Errorf("expected average files 3 on day 1, got %d", day1.Total.Files)
+	}
+
+	// Day 2 average: (300 + 500)/2 = 400 Code
+	day2 := daySummaries[1]
+	if day2.CommitCount != 2 {
+		t.Errorf("expected 2 commits in day 2, got %d", day2.CommitCount)
+	}
+	if day2.Total.Code != 400 {
+		t.Errorf("expected average code 400 on day 2, got %d", day2.Total.Code)
+	}
+
+	// Diff between day 2 and day 1: 400 - 150 = +250
+	if day2.TotalDiffPrev.Code != 250 {
+		t.Errorf("expected day 2 delta vs day 1 to be +250, got %d", day2.TotalDiffPrev.Code)
+	}
+
+	// Aggregate by Month (both in September 2026)
+	monthSummaries := AggregateSnapshots(raw, GroupMonth)
+	if len(monthSummaries) != 1 {
+		t.Fatalf("expected 1 month summary, got %d", len(monthSummaries))
+	}
+	mo1 := monthSummaries[0]
+	if mo1.CommitCount != 4 {
+		t.Errorf("expected 4 commits in month, got %d", mo1.CommitCount)
+	}
+	// Average: (100 + 200 + 300 + 500)/4 = 1100/4 = 275 Code
+	if mo1.Total.Code != 275 {
+		t.Errorf("expected average code 275 in month summary, got %d", mo1.Total.Code)
+	}
+}
+
+func TestGraphSizeInvarianceAcrossScrollAndPeriodSwitch(t *testing.T) {
+	var snaps []*CommitSnapshot
+	for i := range 20 {
+		ts := time.Date(2026, 9, 1+i, 12, 0, 0, 0, time.UTC)
+		s := &CommitSnapshot{
+			Hash:      fmt.Sprintf("hash-%d", i),
+			ShortHash: fmt.Sprintf("h%d", i),
+			Timestamp: ts,
+			Languages: map[string]LanguageStats{
+				"Go": {Name: "Go", Code: 100 * (i + 1), Lines: 120 * (i + 1), Files: 2},
+			},
+			Total: LanguageStats{Code: 100 * (i + 1), Lines: 120 * (i + 1), Files: 2},
+		}
+		if i%3 == 0 {
+			s.Languages["Python"] = LanguageStats{Name: "Python", Code: 50, Lines: 60, Files: 1}
+			s.Total.Code += 50
+			s.Total.Lines += 60
+			s.Total.Files++
+		}
+		snaps = append(snaps, s)
+	}
+	ComputeDiffs(snaps)
+
+	m := NewModel(".", snaps, 20, GroupCommit)
+	m.width = 120
+	m.height = 35
+
+	// 1. Invariance across scroll
+	m.selectedIndex = len(snaps) - 1
+	m.ensureSelectionVisible()
+	hBottom := m.renderHorizontalView()
+	linesBottom := strings.Count(hBottom, "\n")
+
+	// Scroll up to top
+	m.selectedIndex = 0
+	m.ensureSelectionVisible()
+	hTop := m.renderHorizontalView()
+	linesTop := strings.Count(hTop, "\n")
+
+	if linesBottom != linesTop {
+		t.Errorf("horizontal graph height changed while scrolling: bottom=%d lines, top=%d lines", linesBottom, linesTop)
+	}
+
+	// 2. Invariance across summary period switches
+	modes := []GroupMode{GroupCommit, GroupDay, GroupWeek, GroupMonth, GroupYear}
+	for _, mode := range modes {
+		m.activeGroup = mode
+		m.rebuildDisplay()
+		hView := m.renderHorizontalView()
+		linesView := strings.Count(hView, "\n")
+		if linesView != linesBottom {
+			t.Errorf("horizontal graph height changed in mode %s: got %d lines, want %d lines",
+				GroupModeNames[mode], linesView, linesBottom)
+		}
+	}
+
+	// 3. Detail card height invariance between 1-language and 2-language commits
+	m.activeGroup = GroupCommit
+	m.rebuildDisplay()
+	m.selectedIndex = 0 // has Go + Python
+	card0 := m.renderDetailCard()
+	linesCard0 := strings.Count(card0, "\n")
+
+	m.selectedIndex = 1 // has only Go
+	card1 := m.renderDetailCard()
+	linesCard1 := strings.Count(card1, "\n")
+
+	if linesCard0 != linesCard1 {
+		t.Errorf("detail card height changed between commits: card0=%d lines, card1=%d lines", linesCard0, linesCard1)
+	}
+}
+
+func TestNoHeaderJitterOrOverflow(t *testing.T) {
+	// Test that for various terminal dimensions and commits with very long subjects or many languages:
+	// 1. Total rendered lines NEVER exceeds m.height
+	// 2. No line ever wraps beyond m.width
+	// 3. The first line ALWAYS contains "TOKEI-TIME"
+	var snaps []*CommitSnapshot
+	for i := range 15 {
+		subj := fmt.Sprintf("Commit #%d: extremely long subject line with lots of words designed to test line wrapping inside terminal windows and prevent jitter", i)
+		if i%2 == 0 {
+			subj = fmt.Sprintf("Commit #%d: short", i)
+		}
+		s := &CommitSnapshot{
+			Hash:         fmt.Sprintf("hash-%d-1234567890abcdef", i),
+			ShortHash:    fmt.Sprintf("h%d", i),
+			Author:       "Test Author With A Reasonably Long Name",
+			Subject:      subj,
+			Date:         "2026-09-20",
+			RelativeDate: "2 days ago",
+			Timestamp:    time.Date(2026, 9, 1+i, 12, 0, 0, 0, time.UTC),
+			Languages: map[string]LanguageStats{
+				"Go":         {Name: "Go", Code: 100 * (i + 1), Lines: 120 * (i + 1), Files: 2},
+				"Python":     {Name: "Python", Code: 50 * (i + 1), Lines: 60 * (i + 1), Files: 1},
+				"Rust":       {Name: "Rust", Code: 30 * (i + 1), Lines: 40 * (i + 1), Files: 1},
+				"TypeScript": {Name: "TypeScript", Code: 20 * (i + 1), Lines: 25 * (i + 1), Files: 1},
+				"JavaScript": {Name: "JavaScript", Code: 10 * (i + 1), Lines: 15 * (i + 1), Files: 1},
+				"HTML":       {Name: "HTML", Code: 5 * (i + 1), Lines: 8 * (i + 1), Files: 1},
+				"CSS":        {Name: "CSS", Code: 5 * (i + 1), Lines: 7 * (i + 1), Files: 1},
+				"Markdown":   {Name: "Markdown", Code: 0, Lines: 50, Files: 2},
+			},
+			Total: LanguageStats{Code: 220 * (i + 1), Lines: 325 * (i + 1), Files: 10},
+		}
+		snaps = append(snaps, s)
+	}
+	ComputeDiffs(snaps)
+
+	sizes := []struct {
+		w, h int
+	}{
+		{70, 24},
+		{80, 28},
+		{100, 35},
+		{120, 40},
+		{160, 50},
+	}
+
+	for _, sz := range sizes {
+		m := NewModel(".", snaps, len(snaps), GroupCommit)
+		m.width = sz.w
+		m.height = sz.h
+		m.ensureSelectionVisible()
+
+		// Test every commit index as selected (scrolling from 0 to len-1)
+		for idx := range snaps {
+			m.selectedIndex = idx
+			m.ensureSelectionVisible()
+
+			view := m.View()
+			lines := strings.Split(view, "\n")
+
+			if len(lines) > sz.h {
+				t.Errorf("size %dx%d idx=%d: rendered %d lines, exceeded terminal height %d",
+					sz.w, sz.h, idx, len(lines), sz.h)
+			}
+
+			for lineIdx, line := range lines {
+				w := lipgloss.Width(line)
+				if w > sz.w {
+					t.Errorf("size %dx%d idx=%d line %d: visual width %d exceeded terminal width %d:\n%q",
+						sz.w, sz.h, idx, lineIdx, w, sz.w, line)
+				}
+			}
+
+			if len(lines) > 0 && !strings.Contains(lines[0], "TOKEI-TIME") {
+				t.Errorf("size %dx%d idx=%d: first line missing TOKEI-TIME:\n%q", sz.w, sz.h, idx, lines[0])
+			}
+		}
+	}
+}
+
+func TestLazyLoadingHistory(t *testing.T) {
+	// Create 10 mock commits
+	var allInfos []CommitInfo
+	for i := range 10 {
+		allInfos = append(allInfos, CommitInfo{
+			Hash:         fmt.Sprintf("hash-%d", i),
+			ShortHash:    fmt.Sprintf("h%d", i),
+			Author:       "Author",
+			Subject:      fmt.Sprintf("Commit %d", i),
+			Date:         "2026-09-01",
+			RelativeDate: fmt.Sprintf("%d days ago", 10-i),
+			Timestamp:    time.Date(2026, 9, 1+i, 0, 0, 0, 0, time.UTC),
+		})
+	}
+
+	// Initial batch: last 4 commits (indices 6..9)
+	var initialSnaps []*CommitSnapshot
+	for i := 6; i < 10; i++ {
+		initialSnaps = append(initialSnaps, &CommitSnapshot{
+			Hash:      allInfos[i].Hash,
+			ShortHash: allInfos[i].ShortHash,
+			Author:    allInfos[i].Author,
+			Subject:   allInfos[i].Subject,
+			Timestamp: allInfos[i].Timestamp,
+			Languages: map[string]LanguageStats{"Go": {Name: "Go", Code: 100 * (i + 1)}},
+			Total:     LanguageStats{Code: 100 * (i + 1)},
+		})
+	}
+	pending := allInfos[:6] // older commits
+
+	initResult := &HistoryInitResult{
+		InitialSnapshots: initialSnaps,
+		PendingInfos:     pending,
+		TotalCommits:     10,
+	}
+
+	m := NewModelWithLazyLoading(".", initResult, 0, GroupCommit)
+	if !m.isLazyLoading {
+		t.Errorf("expected isLazyLoading to be true")
+	}
+	if len(m.pendingInfos) != 6 {
+		t.Errorf("expected 6 pending infos, got %d", len(m.pendingInfos))
+	}
+	if len(m.rawSnapshots) != 4 {
+		t.Errorf("expected 4 raw snapshots, got %d", len(m.rawSnapshots))
+	}
+
+	// Simulate chunk loaded: 3 older commits (indices 3..5)
+	var chunk1 []*CommitSnapshot
+	for i := 3; i < 6; i++ {
+		chunk1 = append(chunk1, &CommitSnapshot{
+			Hash:      allInfos[i].Hash,
+			ShortHash: allInfos[i].ShortHash,
+			Author:    allInfos[i].Author,
+			Subject:   allInfos[i].Subject,
+			Timestamp: allInfos[i].Timestamp,
+			Languages: map[string]LanguageStats{"Go": {Name: "Go", Code: 100 * (i + 1)}},
+			Total:     LanguageStats{Code: 100 * (i + 1)},
+		})
+	}
+
+	updatedModel, cmd := m.Update(chunkLoadedMsg{
+		snapshots:        chunk1,
+		remainingPending: pending[:3],
+		err:              nil,
+	})
+	m = updatedModel.(Model)
+
+	if cmd == nil {
+		t.Errorf("expected next chunk command to be dispatched, got nil")
+	}
+	if len(m.rawSnapshots) != 7 {
+		t.Errorf("expected 7 raw snapshots after chunk 1, got %d", len(m.rawSnapshots))
+	}
+	// Verify chronological order: oldest to newest
+	if m.rawSnapshots[0].Hash != "hash-3" {
+		t.Errorf("expected oldest loaded commit hash-3 at index 0, got %s", m.rawSnapshots[0].Hash)
+	}
+	if m.rawSnapshots[6].Hash != "hash-9" {
+		t.Errorf("expected newest loaded commit hash-9 at index 6, got %s", m.rawSnapshots[6].Hash)
+	}
+
+	// Simulate final chunk: remaining 3 older commits (indices 0..2)
+	var chunk2 []*CommitSnapshot
+	for i := range 3 {
+		chunk2 = append(chunk2, &CommitSnapshot{
+			Hash:      allInfos[i].Hash,
+			ShortHash: allInfos[i].ShortHash,
+			Author:    allInfos[i].Author,
+			Subject:   allInfos[i].Subject,
+			Timestamp: allInfos[i].Timestamp,
+			Languages: map[string]LanguageStats{"Go": {Name: "Go", Code: 100 * (i + 1)}},
+			Total:     LanguageStats{Code: 100 * (i + 1)},
+		})
+	}
+
+	updatedModel, cmdFinal := m.Update(chunkLoadedMsg{
+		snapshots:        chunk2,
+		remainingPending: nil,
+		err:              nil,
+	})
+	m = updatedModel.(Model)
+
+	if cmdFinal != nil {
+		t.Errorf("expected nil cmd after all commits loaded, got %v", cmdFinal)
+	}
+	if m.isLazyLoading {
+		t.Errorf("expected isLazyLoading to be false when all commits loaded")
+	}
+	if len(m.rawSnapshots) != 10 {
+		t.Errorf("expected 10 raw snapshots, got %d", len(m.rawSnapshots))
+	}
+	if m.rawSnapshots[0].Hash != "hash-0" {
+		t.Errorf("expected hash-0 at index 0, got %s", m.rawSnapshots[0].Hash)
+	}
+	if m.rawSnapshots[9].Hash != "hash-9" {
+		t.Errorf("expected hash-9 at index 9, got %s", m.rawSnapshots[9].Hash)
+	}
+	if !strings.Contains(m.statusMsg, "All 10 commits loaded") {
+		t.Errorf("expected status to say 'All 10 commits loaded', got %q", m.statusMsg)
 	}
 }

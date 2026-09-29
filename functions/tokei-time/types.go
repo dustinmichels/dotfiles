@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
 )
 
 // Metric represents the code metric being visualized.
@@ -51,6 +53,71 @@ func PrevMetric(current Metric) Metric {
 	return MetricCode
 }
 
+// GroupMode represents the aggregation level (individual commits or summary periods).
+type GroupMode int
+
+const (
+	GroupCommit GroupMode = iota
+	GroupDay
+	GroupWeek
+	GroupMonth
+	GroupYear
+)
+
+var GroupModeList = []GroupMode{
+	GroupCommit,
+	GroupDay,
+	GroupWeek,
+	GroupMonth,
+	GroupYear,
+}
+
+var GroupModeNames = map[GroupMode]string{
+	GroupCommit: "Commit",
+	GroupDay:    "Day",
+	GroupWeek:   "Week",
+	GroupMonth:  "Month",
+	GroupYear:   "Year",
+}
+
+// NextGroupMode returns the next grouping mode in the cycle.
+func NextGroupMode(current GroupMode) GroupMode {
+	for i, g := range GroupModeList {
+		if g == current {
+			return GroupModeList[(i+1)%len(GroupModeList)]
+		}
+	}
+	return GroupCommit
+}
+
+// PrevGroupMode returns the previous grouping mode in the cycle.
+func PrevGroupMode(current GroupMode) GroupMode {
+	for i, g := range GroupModeList {
+		if g == current {
+			return GroupModeList[(i-1+len(GroupModeList))%len(GroupModeList)]
+		}
+	}
+	return GroupCommit
+}
+
+// ParseGroupMode parses a string into a GroupMode.
+func ParseGroupMode(s string) (GroupMode, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "commit", "commits", "c":
+		return GroupCommit, nil
+	case "day", "days", "d", "daily":
+		return GroupDay, nil
+	case "week", "weeks", "w", "weekly":
+		return GroupWeek, nil
+	case "month", "months", "m", "monthly":
+		return GroupMonth, nil
+	case "year", "years", "y", "yearly":
+		return GroupYear, nil
+	default:
+		return GroupCommit, fmt.Errorf("unknown group mode %q (expected: commit, day, week, month, year)", s)
+	}
+}
+
 // LanguageStats holds the metrics for a single programming language.
 type LanguageStats struct {
 	Name     string
@@ -87,6 +154,15 @@ type CommitInfo struct {
 	Date         string
 	RelativeDate string
 	Subject      string
+	Timestamp    time.Time
+}
+
+// HistoryInitResult holds initial snapshots and pending commits for lazy loading.
+type HistoryInitResult struct {
+	InitialSnapshots []*CommitSnapshot
+	PendingInfos     []CommitInfo
+	TotalCommits     int
+	IsDirty          bool
 }
 
 // CommitSnapshot represents the complete state of a codebase at a specific commit
@@ -98,8 +174,15 @@ type CommitSnapshot struct {
 	Date          string
 	RelativeDate  string
 	Subject       string
+	Timestamp     time.Time
 	IsWorkingTree bool
 
+	// Summary aggregation metadata
+	IsSummary   bool
+	CommitCount int
+	PeriodLabel string
+	PeriodKey   string
+	SubCommits  []string
 	// Tokei stats
 	Languages map[string]LanguageStats
 	Total     LanguageStats

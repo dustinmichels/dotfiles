@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // CheckGitInstalled verifies that git is available in PATH.
@@ -47,9 +48,13 @@ func IsWorkingTreeDirty(repoRoot string) (bool, error) {
 
 // GetRecentCommits returns up to limit recent commits in chronological order (oldest first).
 func GetRecentCommits(repoRoot string, limit int) ([]CommitInfo, error) {
-	// Format: %H (full hash) NUL %h (short hash) NUL %an (author) NUL %ad (date) NUL %ar (relative date) NUL %s (subject)
-	format := "%H%x00%h%x00%an%x00%ad%x00%ar%x00%s"
-	cmd := exec.Command("git", "log", fmt.Sprintf("-n%d", limit), "--date=short", fmt.Sprintf("--format=%s", format))
+	// Format: %H (full hash) NUL %h (short hash) NUL %an (author) NUL %ad (date) NUL %ar (relative date) NUL %s (subject) NUL %aI (ISO strict)
+	format := "%H%x00%h%x00%an%x00%ad%x00%ar%x00%s%x00%aI"
+	args := []string{"log", "--date=short", fmt.Sprintf("--format=%s", format)}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-n%d", limit))
+	}
+	cmd := exec.Command("git", args...)
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
 	if err != nil {
@@ -72,6 +77,22 @@ func GetRecentCommits(repoRoot string, limit int) ([]CommitInfo, error) {
 		if len(parts) < 6 {
 			continue
 		}
+		var ts time.Time
+		if len(parts) >= 7 {
+			parsed, err := time.Parse(time.RFC3339, parts[6])
+			if err == nil {
+				ts = parsed
+			}
+		}
+		if ts.IsZero() {
+			parsed, err := time.Parse("2006-01-02", parts[3])
+			if err == nil {
+				ts = parsed
+			} else {
+				ts = time.Now()
+			}
+		}
+
 		commits = append(commits, CommitInfo{
 			Hash:         parts[0],
 			ShortHash:    parts[1],
@@ -79,6 +100,7 @@ func GetRecentCommits(repoRoot string, limit int) ([]CommitInfo, error) {
 			Date:         parts[3],
 			RelativeDate: parts[4],
 			Subject:      parts[5],
+			Timestamp:    ts,
 		})
 	}
 	return commits, nil
