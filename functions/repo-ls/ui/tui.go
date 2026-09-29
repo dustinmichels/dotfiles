@@ -111,6 +111,12 @@ func NewModel(rootDir string, repos []*models.Repo) Model {
 	return m
 }
 
+// SetSortMode changes the sort mode and reapplies filters and sorting.
+func (m *Model) SetSortMode(mode models.SortMode) {
+	m.sortMode = mode
+	m.applyFiltersAndSort()
+}
+
 func (m *Model) currentItem() *TableItem {
 	if m.noSelection || m.cursor < 0 || m.cursor >= len(m.items) {
 		return nil
@@ -200,45 +206,7 @@ func (m *Model) applyFiltersAndSort() {
 	}
 
 	// 3. Sort
-	switch m.sortMode {
-	case models.SortName:
-		sort.Slice(filtered, func(i, j int) bool {
-			return strings.ToLower(filtered[i].Name) < strings.ToLower(filtered[j].Name)
-		})
-	case models.SortModified:
-		sort.Slice(filtered, func(i, j int) bool {
-			timeI := filtered[i].LastModified
-			if timeI.IsZero() && filtered[i].LastCommit != nil {
-				timeI = filtered[i].LastCommit.Date
-			}
-			timeJ := filtered[j].LastModified
-			if timeJ.IsZero() && filtered[j].LastCommit != nil {
-				timeJ = filtered[j].LastCommit.Date
-			}
-			if !timeI.Equal(timeJ) {
-				return timeI.After(timeJ)
-			}
-			return filtered[i].RelPath < filtered[j].RelPath
-		})
-	case models.SortCreated:
-		sort.Slice(filtered, func(i, j int) bool {
-			if !filtered[i].DateCreated.Equal(filtered[j].DateCreated) {
-				return filtered[i].DateCreated.After(filtered[j].DateCreated)
-			}
-			return filtered[i].RelPath < filtered[j].RelPath
-		})
-	case models.SortDirtyFirst:
-		sort.Slice(filtered, func(i, j int) bool {
-			if filtered[i].HasUncommitted != filtered[j].HasUncommitted {
-				return filtered[i].HasUncommitted
-			}
-			return filtered[i].RelPath < filtered[j].RelPath
-		})
-	default: // SortPath
-		sort.Slice(filtered, func(i, j int) bool {
-			return filtered[i].RelPath < filtered[j].RelPath
-		})
-	}
+	models.SortRepos(filtered, m.sortMode)
 
 	m.filtered = filtered
 
@@ -293,7 +261,96 @@ func (m *Model) applyFiltersAndSort() {
 		}
 	}
 
-	if m.sortMode == models.SortPath {
+	topItemName := func(it topLevelItem) string {
+		if !it.isFolder && it.repo != nil {
+			return it.repo.Name
+		}
+		return it.key
+	}
+
+	topItemModified := func(it topLevelItem) time.Time {
+		var maxTime time.Time
+		if !it.isFolder && it.repo != nil {
+			maxTime = it.repo.LastModified
+			if maxTime.IsZero() && it.repo.LastCommit != nil {
+				maxTime = it.repo.LastCommit.Date
+			}
+		}
+		for _, c := range it.children {
+			t := c.LastModified
+			if t.IsZero() && c.LastCommit != nil {
+				t = c.LastCommit.Date
+			}
+			if t.After(maxTime) {
+				maxTime = t
+			}
+		}
+		return maxTime
+	}
+
+	topItemCreated := func(it topLevelItem) time.Time {
+		var maxTime time.Time
+		if !it.isFolder && it.repo != nil {
+			maxTime = it.repo.DateCreated
+		}
+		for _, c := range it.children {
+			if c.DateCreated.After(maxTime) {
+				maxTime = c.DateCreated
+			}
+		}
+		return maxTime
+	}
+
+	topItemDirty := func(it topLevelItem) bool {
+		if !it.isFolder && it.repo != nil && it.repo.HasUncommitted {
+			return true
+		}
+		for _, c := range it.children {
+			if c.HasUncommitted {
+				return true
+			}
+		}
+		return false
+	}
+
+	switch m.sortMode {
+	case models.SortName:
+		sort.Slice(topList, func(i, j int) bool {
+			ni := strings.ToLower(topItemName(topList[i]))
+			nj := strings.ToLower(topItemName(topList[j]))
+			if ni != nj {
+				return ni < nj
+			}
+			return topList[i].key < topList[j].key
+		})
+	case models.SortModified:
+		sort.Slice(topList, func(i, j int) bool {
+			ti := topItemModified(topList[i])
+			tj := topItemModified(topList[j])
+			if !ti.Equal(tj) {
+				return ti.After(tj)
+			}
+			return topList[i].key < topList[j].key
+		})
+	case models.SortCreated:
+		sort.Slice(topList, func(i, j int) bool {
+			ti := topItemCreated(topList[i])
+			tj := topItemCreated(topList[j])
+			if !ti.Equal(tj) {
+				return ti.After(tj)
+			}
+			return topList[i].key < topList[j].key
+		})
+	case models.SortDirtyFirst:
+		sort.Slice(topList, func(i, j int) bool {
+			di := topItemDirty(topList[i])
+			dj := topItemDirty(topList[j])
+			if di != dj {
+				return di
+			}
+			return topList[i].key < topList[j].key
+		})
+	default: // SortPath
 		sort.Slice(topList, func(i, j int) bool {
 			return topList[i].key < topList[j].key
 		})
@@ -789,7 +846,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
-		case "c":
+		case "c", "alt+left", "ctrl+left", "cmd+left", "cmd+<-", "super+left":
 			for _, r := range m.allRepos {
 				if strings.Contains(filepath.ToSlash(r.RelPath), "/") {
 					f := strings.Split(filepath.ToSlash(r.RelPath), "/")[0]
@@ -798,7 +855,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.applyFiltersAndSort()
 
-		case "e":
+		case "e", "alt+right", "ctrl+right", "cmd+right", "cmd+->", "super+right":
 			m.collapsedFolders = make(map[string]bool)
 			m.applyFiltersAndSort()
 
@@ -936,6 +993,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Sorting
 		case "s":
 			m.sortMode = (m.sortMode + 1) % 5
+			m.applyFiltersAndSort()
+		case "S":
+			m.sortMode = (m.sortMode + 4) % 5
 			m.applyFiltersAndSort()
 		// Open in browser
 		case "o":
@@ -2051,7 +2111,7 @@ func (m Model) renderFooter() string {
 		return successStyle.Render("✓ " + m.statusMsg)
 	}
 
-	help := "[↑/↓] Select  [Enter] Info  [Space] Folders  [Tab] Filters  [/] Search  [s] Sort  [o] Browser  [d] Delete  [q] Quit"
+	help := "[↑/↓] Select  [Enter] Info  [Space] Folders  [Tab] Filters  [/] Search  [s/S] Sort  [c/e] Fold/Unfold  [o] Browser  [d] Delete  [q] Quit"
 	if len(help) > m.width {
 		help = "[↑/↓] Select  [Space] Folders  [Tab] Filters  [/] Search  [s] Sort  [q] Quit"
 	}

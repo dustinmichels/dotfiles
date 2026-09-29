@@ -735,3 +735,179 @@ func TestSearchNoMatchClearReturnsTokeiCmd(t *testing.T) {
 		t.Errorf("expected loadAllTokeiCmd() to return non-nil cmd after clearing empty search")
 	}
 }
+
+func TestTopListSortingWithFolders(t *testing.T) {
+	now := time.Now()
+	repos := []*models.Repo{
+		{
+			Path:         "/root/zebra",
+			RelPath:      "zebra",
+			Name:         "zebra",
+			Branch:       "main",
+			DateCreated:  now.Add(-100 * 24 * time.Hour), // Oldest
+			LastModified: now.Add(-1 * time.Minute),        // Newest modified
+		},
+		{
+			Path:         "/root/archive/old1",
+			RelPath:      "archive/old1",
+			Name:         "old1",
+			Branch:       "main",
+			DateCreated:  now.Add(-10 * 24 * time.Hour), // Middle created
+			LastModified: now.Add(-50 * 24 * time.Hour), // Oldest modified
+		},
+		{
+			Path:         "/root/apple",
+			RelPath:      "apple",
+			Name:         "apple",
+			Branch:       "main",
+			DateCreated:  now.Add(-1 * 24 * time.Hour),  // Newest created
+			LastModified: now.Add(-2 * 24 * time.Hour), // Middle modified
+		},
+	}
+
+	m := NewModel("/root", repos)
+
+	// 1. Sort by Name: "apple" (repo) -> "archive" (folder) -> "zebra" (repo)
+	m.SetSortMode(models.SortName)
+	firstTopItem := func() string {
+		if m.items[0].Kind == ItemKindFolder {
+			return m.items[0].Folder
+		}
+		return m.items[0].Repo.Name
+	}
+	secondTopItem := func() string {
+		// Note: if first is expanded folder, item 1 is child old1, item 2 is next top item
+		for _, it := range m.items[1:] {
+			if !it.IsChild {
+				if it.Kind == ItemKindFolder {
+					return it.Folder
+				}
+				return it.Repo.Name
+			}
+		}
+		return ""
+	}
+	thirdTopItem := func() string {
+		var tops []string
+		for _, it := range m.items {
+			if !it.IsChild {
+				if it.Kind == ItemKindFolder {
+					tops = append(tops, it.Folder)
+				} else {
+					tops = append(tops, it.Repo.Name)
+				}
+			}
+		}
+		if len(tops) >= 3 {
+			return tops[2]
+		}
+		return ""
+	}
+
+	if firstTopItem() != "apple" || secondTopItem() != "archive" || thirdTopItem() != "zebra" {
+		t.Errorf("SortName expected [apple, archive, zebra], got [%s, %s, %s]",
+			firstTopItem(), secondTopItem(), thirdTopItem())
+	}
+
+	// 2. Sort by Created: "apple" (-1d) -> "archive" (-10d from old1) -> "zebra" (-100d)
+	m.SetSortMode(models.SortCreated)
+	if firstTopItem() != "apple" || secondTopItem() != "archive" || thirdTopItem() != "zebra" {
+		t.Errorf("SortCreated expected [apple, archive, zebra], got [%s, %s, %s]",
+			firstTopItem(), secondTopItem(), thirdTopItem())
+	}
+
+	// 3. Sort by Modified: "zebra" (-1m) -> "apple" (-2d) -> "archive" (-50d)
+	m.SetSortMode(models.SortModified)
+	if firstTopItem() != "zebra" || secondTopItem() != "apple" || thirdTopItem() != "archive" {
+		t.Errorf("SortModified expected [zebra, apple, archive], got [%s, %s, %s]",
+			firstTopItem(), secondTopItem(), thirdTopItem())
+	}
+}
+
+func TestCollapseAndExpandShortcuts(t *testing.T) {
+	now := time.Now()
+	repos := []*models.Repo{
+		{
+			Path:    "/root/archive/old1",
+			RelPath: "archive/old1",
+			Name:    "old1",
+			Branch:  "main",
+		},
+		{
+			Path:    "/root/docs/readme",
+			RelPath: "docs/readme",
+			Name:    "readme",
+			Branch:  "main",
+		},
+	}
+	_ = now
+	m := NewModel("/root", repos)
+	if len(m.items) != 4 { // 2 folders + 2 children
+		t.Fatalf("expected 4 items initially, got %d", len(m.items))
+	}
+
+	// Test ctrl+left collapses all
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlLeft})
+	m = updated.(Model)
+	if len(m.items) != 2 {
+		t.Errorf("expected 2 items after ctrl+left (collapsed), got %d", len(m.items))
+	}
+
+	// Test ctrl+right expands all
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlRight})
+	m = updated.(Model)
+	if len(m.items) != 4 {
+		t.Errorf("expected 4 items after ctrl+right (expanded), got %d", len(m.items))
+	}
+
+	// Test alt+left collapses all
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft, Alt: true})
+	m = updated.(Model)
+	if len(m.items) != 2 {
+		t.Errorf("expected 2 items after alt+left, got %d", len(m.items))
+	}
+
+	// Test alt+right expands all
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRight, Alt: true})
+	m = updated.(Model)
+	if len(m.items) != 4 {
+		t.Errorf("expected 4 items after alt+right, got %d", len(m.items))
+	}
+
+	// Test cmd+left string collapses all
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("cmd+left")})
+	m = updated.(Model)
+	if len(m.items) != 2 {
+		t.Errorf("expected 2 items after cmd+left, got %d", len(m.items))
+	}
+
+	// Test cmd+right string expands all
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("cmd+right")})
+	m = updated.(Model)
+	if len(m.items) != 4 {
+		t.Errorf("expected 4 items after cmd+right, got %d", len(m.items))
+	}
+}
+
+func TestSortCycleForwardAndBackward(t *testing.T) {
+	repos := makeTestRepos()
+	m := NewModel("/root", repos)
+
+	if m.sortMode != models.SortPath {
+		t.Fatalf("expected initial SortPath, got %v", m.sortMode)
+	}
+
+	// Forward with 's'
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = updated.(Model)
+	if m.sortMode != models.SortName {
+		t.Errorf("expected SortName after 's', got %v", m.sortMode)
+	}
+
+	// Backward with 'S'
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
+	m = updated.(Model)
+	if m.sortMode != models.SortPath {
+		t.Errorf("expected SortPath after 'S', got %v", m.sortMode)
+	}
+}

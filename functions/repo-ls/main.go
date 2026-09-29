@@ -31,6 +31,7 @@ FLAGS:
   -h, --help       Show help
   -d, --depth      Maximum directory depth to search (default: 6)
   -p, --plain      Print plain text list of repositories and exit (non-interactive)
+  -s, --sort       Sort order: path, name, modified, created, dirty (default: path)
 
 EXAMPLES:
   repo-ls                  # Scan current directory (or ~/GitRepos)
@@ -46,6 +47,7 @@ func main() {
 		versionFlag bool
 		depthFlag   int
 		plainFlag   bool
+		sortFlag    string
 	)
 
 	flag.BoolVar(&helpFlag, "h", false, "Show help")
@@ -56,7 +58,8 @@ func main() {
 	flag.IntVar(&depthFlag, "depth", 6, "Maximum directory scan depth")
 	flag.BoolVar(&plainFlag, "p", false, "Plain text list output")
 	flag.BoolVar(&plainFlag, "plain", false, "Plain text list output")
-
+	flag.StringVar(&sortFlag, "s", "path", "Sort order: path, name, modified, created, dirty")
+	flag.StringVar(&sortFlag, "sort", "path", "Sort order: path, name, modified, created, dirty")
 	flag.Usage = printHelp
 	flag.Parse()
 
@@ -115,10 +118,13 @@ func main() {
 		os.Exit(0)
 	}
 
+	initialSort := parseSortMode(sortFlag)
+
 	// Non-interactive plain mode
 	// Non-interactive plain mode
 	if plainFlag {
 		git.EnrichGitHubVisibility(repos)
+		models.SortRepos(repos, initialSort)
 		fmt.Printf("%-3s  %-30s  %-12s  %-10s  %-12s  %-12s  %s\n", "ST", "PATH", "BRANCH", "VISIBILITY", "CREATED", "MODIFIED", "REMOTE")
 		fmt.Println(strings.Repeat("─", 110))
 		for _, r := range repos {
@@ -135,11 +141,30 @@ func main() {
 	}
 
 	// Run interactive TUI
+	// Run interactive TUI
 	m := ui.NewModel(absTarget, repos)
+	if initialSort != models.SortPath {
+		m.SetSortMode(initialSort)
+	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running repo-ls: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func parseSortMode(s string) models.SortMode {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "name":
+		return models.SortName
+	case "modified", "recent", "date-modified":
+		return models.SortModified
+	case "created", "date-created":
+		return models.SortCreated
+	case "dirty":
+		return models.SortDirtyFirst
+	default:
+		return models.SortPath
 	}
 }

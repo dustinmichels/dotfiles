@@ -9,8 +9,8 @@ Recursively scans directories (such as `~/GitRepos`), shows uncommitted dirty st
 - **Fast Recursive Scanning**: Recursively discovers git repositories at any depth while automatically ignoring noisy build and cache folders (`node_modules`, `target`, `dist`, `.cache`, `.venv`, `Pods`, etc.).
 - **Subtle Dirty Indicators**: Flags repositories with uncommitted changes via a clean red dot (`●`) without tinting the entire row red.
 - **Date Created & Last Modified**: Displays `DATE-CREATED` and `LAST-MODIFIED` timestamps for every repository, taking into account commit history and uncommitted changes.
-- **Flexible Sorting**: Press `s` to cycle sorting by Path, Name, Last Modified, Date Created, or Dirty First.
-- **Collapsible Folder & Parent Groups**: Subfolders containing repositories (e.g. `ARCHIVE`, `_TUFTS`) and parent repositories with nested repos (e.g. `my-tools`) can be collapsed and expanded with `Space`, `Enter`, or arrow keys.
+- **Flexible Sorting**: Press `s` (or `S` in reverse) to cycle sorting by Path, Name, Last Modified, Date Created, or Dirty First, or specify `--sort <mode>` on startup.
+- **Collapsible Folder & Parent Groups**: Subfolders containing repositories (e.g. `ARCHIVE`, `_TUFTS`) and parent repositories with nested repos (e.g. `my-tools`) can be collapsed and expanded with `Space`, `Enter`, or arrow keys. Press `Cmd+←` / `Alt+←` / `c` to collapse all, and `Cmd+→` / `Alt+→` / `e` to expand all.
 - **Global Portfolio Summary**: Deselect any repository (press `Esc` or move `↑` from the top) to view aggregate code statistics (`tokei`), portfolio-wide language distribution, commit totals, and recent activity across all repositories.
 - **GitHub Integration**:
   - Detects remote URL, remote name, and GitHub repository slug (`owner/repo`).
@@ -61,8 +61,8 @@ repo-ls ~/GitRepos
 | `Left Click` | Select clicked repository or toggle folder collapse |
 | `Mouse Wheel` | Scroll table or inspector |
 | `Space` / `←` / `→` | Toggle collapse / expand on folder or parent repo |
-| `c` | Collapse all folders |
-| `e` | Expand all folders |
+| `c` / `Cmd+←` / `Alt+←` / `Ctrl+←` | Collapse all folders |
+| `e` / `Cmd+→` / `Alt+→` / `Ctrl+→` | Expand all folders |
 | `Enter` / `i` | Toggle full-screen inspector view (or toggle folder if on folder) |
 | `Tab` / `Shift+Tab` | Cycle filter options / modal choices |
 | `/` | Live search filter (name, path, remote) |
@@ -73,7 +73,7 @@ repo-ls ~/GitRepos
 | `p` | Toggle filter: Public GitHub repos only |
 | `P` | Toggle filter: Private GitHub repos only |
 | `a` | Reset filter to all |
-| `s` | Cycle sort mode (Path → Name → Last Modified → Date Created → Dirty First) |
+| `s` / `S` | Cycle sort mode forward / backward (Path → Name → Last Modified → Date Created → Dirty First) |
 | `o` | Open repository in GitHub in your browser |
 | `d` / `x` | Open deletion dialog for selected repository |
 | `r` | Rescan repositories |
@@ -83,5 +83,5 @@ repo-ls ~/GitRepos
 Output a tab-delimited plain text table for scripting or quick command-line checking:
 
 ```sh
-repo-ls --plain ~/GitRepos
+repo-ls --plain --sort modified ~/GitRepos
 ```
