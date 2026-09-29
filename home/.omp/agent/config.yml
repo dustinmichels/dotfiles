@@ -1,7 +1,7 @@
 setupVersion: 2
 modelRoles:
   smol: google-antigravity/gemini-3.5-flash-lite
-  advisor: anthropic/claude-opus-5-5
+  advisor: openai-codex/gpt-5.6-sol
   speech: local/kokoro
   judge: openrouter/~typesafe/jev-latest
   default: google-antigravity/gemini-3.8-flash:high

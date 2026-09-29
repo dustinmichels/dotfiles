@@ -4,9 +4,11 @@ duckdb = "latest"
 go = "latest"
 java = "latest"
 node = "latest"
+npm = "latest"
 "npm:@alibaba-group/open-code-review" = { version = "latest", trust_policy_excludes = "@alibaba-group/open-code-review" }
 "npm:@colbymchenry/codegraph" = "latest"
 "npm:@google/clasp" = "latest"
+"npm:@shopify/cli" = "latest"
 "npm:@vue/language-server" = "latest"
 "npm:clerk" = "latest"
 "npm:netlify-cli" = { version = "latest", trust_policy_excludes = [
