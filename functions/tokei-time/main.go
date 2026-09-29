@@ -23,7 +23,8 @@ ARGUMENTS:
     [PATH]                     Path to repository or directory (default: ".")
 
 OPTIONS:
-    -n, --commits <COUNT>      Number of recent commits to analyze (default: 10)
+    -n, --commits <COUNT>      Number of commits to analyze (default: 0 = all history with lazy-loading)
+    -g, --group <MODE>         Summary grouping: commit, day, week, month, year (default: commit)
     -m, --metric <METRIC>      Initial metric to display: code, lines, files, comments, blanks (default: code)
     -v, --version              Show version
     -h, --help                 Show this help message
@@ -31,11 +32,13 @@ OPTIONS:
 KEYBOARD SHORTCUTS:
     Tab / Shift+Tab            Cycle through metrics (Files, Lines, Code, Comments, Blanks)
     1, 2, 3, 4, 5              Jump directly to: 1=Code, 2=Lines, 3=Files, 4=Comments, 5=Blanks
-    ↑ / ↓ or k / j             Navigate commits
+    s / g (or S / G)           Toggle summary stats: Commits ↔ Day ↔ Week ↔ Month ↔ Year (averaging period)
+    ↑ / ↓ or k / j             Navigate commits or summary periods
     ← / → or h / l             Navigate in vertical chart mode
     v                          Toggle view (Horizontal Stacked Bars vs Vertical Timeline Chart)
-    c / d                      Toggle diff mode (Δ vs Previous Commit vs Δ vs Latest / Working Tree)
-    + / -                      Increase or decrease number of commits analyzed
+    c / d                      Toggle diff mode (Δ vs Previous vs Δ vs Latest)
+    + / -                      Increase or decrease number of commits analyzed (±10)
+    a                          Load all commits in repository history
     r                          Refresh data from repository
     q / Esc / Ctrl+C           Quit
 `
@@ -45,13 +48,16 @@ KEYBOARD SHORTCUTS:
 func main() {
 	var (
 		limitFlag   int
+		groupFlag   string
 		metricFlag  string
 		versionFlag bool
 		helpFlag    bool
 	)
 
-	flag.IntVar(&limitFlag, "n", 10, "Number of commits to analyze")
-	flag.IntVar(&limitFlag, "commits", 10, "Number of commits to analyze")
+	flag.IntVar(&limitFlag, "n", 0, "Number of commits to analyze (0 for all history)")
+	flag.IntVar(&limitFlag, "commits", 0, "Number of commits to analyze (0 for all history)")
+	flag.StringVar(&groupFlag, "g", "commit", "Grouping mode (commit, day, week, month, year)")
+	flag.StringVar(&groupFlag, "group", "commit", "Grouping mode (commit, day, week, month, year)")
 	flag.StringVar(&metricFlag, "m", "code", "Initial metric (code, lines, files, comments, blanks)")
 	flag.StringVar(&metricFlag, "metric", "code", "Initial metric (code, lines, files, comments, blanks)")
 	flag.BoolVar(&versionFlag, "v", false, "Show version")
@@ -97,25 +103,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 4. Initial data collection with progress feedback
-	fmt.Printf("Analyzing %s with tokei (fetching %d commits)...\n", repoRoot, limitFlag)
-	snapshots, err := CollectHistory(repoRoot, limitFlag, func(done, total int) {
-		fmt.Printf("\rScanning commits: %d/%d...", done, total)
+	// 4. Initial data collection with fast startup (initial batch of 25 commits)
+	initialBatch := 25
+	if limitFlag > 0 && limitFlag < initialBatch {
+		initialBatch = limitFlag
+	}
+	if limitFlag <= 0 {
+		fmt.Printf("Analyzing %s with tokei (all commits, streaming history)...\n", repoRoot)
+	} else {
+		fmt.Printf("Analyzing %s with tokei (fetching %d commits)...\n", repoRoot, limitFlag)
+	}
+	initResult, err := CollectInitialHistory(repoRoot, limitFlag, initialBatch, func(done, total int) {
+		fmt.Printf("\rScanning initial commits: %d/%d...", done, total)
 	})
 	fmt.Println()
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error analyzing repository: %v\n", err)
 		os.Exit(1)
 	}
 
-	if len(snapshots) == 0 {
+	if len(initResult.InitialSnapshots) == 0 {
 		fmt.Fprintf(os.Stderr, "No commits found in %s\n", repoRoot)
 		os.Exit(1)
 	}
 
 	// 5. Setup model & metric
-	m := NewModel(repoRoot, snapshots, limitFlag)
+	initialGroup, err := ParseGroupMode(groupFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %v, defaulting to commit\n", err)
+		initialGroup = GroupCommit
+	}
+	m := NewModelWithLazyLoading(repoRoot, initResult, limitFlag, initialGroup)
 	switch strings.ToLower(metricFlag) {
 	case "files":
 		m.activeMetric = MetricFiles
