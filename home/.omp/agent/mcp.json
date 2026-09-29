@@ -23,15 +23,11 @@
     }
   },
   "disabledServers": [
-    "cloudflare-api",
-    "cloudflare-bindings",
-    "cloudflare-builds",
-    "cloudflare-observability",
-    "cloudflare:cloudflare",
-    "cloudflare:cloudflare-api",
-    "cloudflare:cloudflare-bindings",
-    "cloudflare:cloudflare-builds",
-    "cloudflare:cloudflare-observability",
-    "context7:context7"
+    "context7:context7",
+    "huggingface-skills",
+    "huggingface-skills:huggingface-skills",
+    "netlify",
+    "netlify-skills",
+    "netlify-skills:netlify"
   ]
 }

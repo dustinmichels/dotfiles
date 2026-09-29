@@ -17,7 +17,7 @@
   // ----- JUPYTER & NOTEBOOK CONFIGURATION -----
   "notebook.formatOnSave.enabled": true,
   "notebook.codeActionsOnSave": {
-    "notebook.source.organizeImports.ruff": "explicit"
+    "notebook.source.organizeImports.ruff": "always"
   },
 
   // ----- RUFF CONFIGURATION -----
@@ -120,7 +120,7 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.ruff": "explicit"
+      "source.organizeImports.ruff": "always"
     }
   },
   "[shellscript]": {
