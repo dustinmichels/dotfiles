@@ -82,10 +82,27 @@ type pluginListItem struct {
 	ID string `json:"id"`
 }
 
+type pluginStatus int
+
+const (
+	statusUpdated pluginStatus = iota
+	statusUpToDate
+	statusFailed
+	statusDryRun
+)
+
+type pluginScopeEntry struct {
+	Scope        string `json:"scope"`
+	InstallPath  string `json:"installPath"`
+	Version      string `json:"version"`
+	GitCommitSha string `json:"gitCommitSha"`
+}
+
 type pluginResult struct {
 	id      string
 	rc      int
 	elapsed int
+	status  pluginStatus
 }
 
 func runCmd(name string, args []string, stdin io.Reader, dryRun bool) (int, int) {
@@ -116,6 +133,42 @@ func runCmd(name string, args []string, stdin io.Reader, dryRun bool) (int, int)
 	}
 	return rc, tElapsed
 }
+
+func parsePluginScopeEntries(raw json.RawMessage) []pluginScopeEntry {
+	var list []pluginScopeEntry
+	if err := json.Unmarshal(raw, &list); err == nil {
+		return list
+	}
+	var single pluginScopeEntry
+	if err := json.Unmarshal(raw, &single); err == nil {
+		return []pluginScopeEntry{single}
+	}
+	return nil
+}
+
+func getPluginFingerprint(homeDir string, id string) string {
+	pluginFile := filepath.Join(homeDir, ".claude", "plugins", "installed_plugins.json")
+	data, err := os.ReadFile(pluginFile)
+	if err != nil {
+		return ""
+	}
+	var parsed installedPluginsFile
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return ""
+	}
+	raw, ok := parsed.Plugins[id]
+	if !ok {
+		return ""
+	}
+	entries := parsePluginScopeEntries(raw)
+	var parts []string
+	for _, e := range entries {
+		parts = append(parts, fmt.Sprintf("%s|%s|%s|%s", e.Scope, e.Version, e.GitCommitSha, e.InstallPath))
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ";")
+}
+
 
 func mutedColorTag(text string) string {
 	return lipgloss.NewStyle().Foreground(mutedColor).Render(text)
@@ -187,15 +240,15 @@ func showHelp() {
 
 	fmt.Println()
 	fmt.Printf("%s\n%s\n\n", title, sub)
-	fmt.Printf("%s\n  update_plugins [flags]\n\n", usageHdr)
+	fmt.Printf("%s\n  update-plugins [flags]\n\n", usageHdr)
 	fmt.Printf("%s\n", flagsHdr)
 	fmt.Printf("  %s  %s\n", flagName.Render("-y, --yes    "), flagDesc.Render("Auto-accept prompts during updates and pruning"))
 	fmt.Printf("  %s  %s\n", flagName.Render("-d, --dry-run"), flagDesc.Render("Simulate the process without executing claude commands"))
 	fmt.Printf("  %s  %s\n\n", flagName.Render("-h, --help   "), flagDesc.Render("Show this help message"))
 	fmt.Printf("%s\n", exHdr)
-	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update_plugins             # Interactive mode")
-	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update_plugins -y          # Non-interactive auto-confirm")
-	fmt.Printf("  %s %s\n\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update_plugins --dry-run   # Preview actions")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins             # Interactive mode")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins -y          # Non-interactive auto-confirm")
+	fmt.Printf("  %s %s\n\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --dry-run   # Preview actions")
 }
 
 func main() {
@@ -282,7 +335,8 @@ func main() {
 	fmt.Println()
 
 	var results []pluginResult
-	var succeededCount int
+	var updatedCount int
+	var upToDateCount int
 	var failedCount int
 
 	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("#374151")).Render("   ───────────────────────────────────────────────────")
@@ -297,24 +351,55 @@ func main() {
 			args = append(args, "-y")
 		}
 
-		rc, tElapsed := runCmd("claude", args, os.Stdin, dryRunFlag)
-		results = append(results, pluginResult{id: id, rc: rc, elapsed: tElapsed})
+		beforeFP := ""
+		if !dryRunFlag {
+			beforeFP = getPluginFingerprint(homeDir, id)
+		}
 
-		if rc == 0 {
-			succeededCount++
+		rc, tElapsed := runCmd("claude", args, os.Stdin, dryRunFlag)
+
+		var status pluginStatus
+		if dryRunFlag {
+			status = statusDryRun
 			fmt.Printf("   %s %s %s\n",
-				successStyle.Render("✔"),
+				lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
 				pluginNameStyle.Render(id),
-				mutedColorTag(fmt.Sprintf("finished in %ds", tElapsed)),
+				mutedColorTag("simulated"),
 			)
-		} else {
+		} else if rc != 0 {
 			failedCount++
+			status = statusFailed
 			fmt.Printf("   %s %s %s\n",
 				errorStyle.Render("✖"),
 				pluginNameStyle.Render(id),
 				errorStyle.Render(fmt.Sprintf("failed (exit %d in %ds)", rc, tElapsed)),
 			)
+		} else {
+			afterFP := getPluginFingerprint(homeDir, id)
+			isUpToDate := false
+			if beforeFP != "" && afterFP != "" {
+				isUpToDate = (beforeFP == afterFP)
+			}
+			if isUpToDate {
+				upToDateCount++
+				status = statusUpToDate
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(infoColor).Render("✔"),
+					pluginNameStyle.Render(id),
+					mutedColorTag(fmt.Sprintf("already up-to-date (%ds)", tElapsed)),
+				)
+			} else {
+				updatedCount++
+				status = statusUpdated
+				fmt.Printf("   %s %s %s\n",
+					successStyle.Render("✔"),
+					pluginNameStyle.Render(id),
+					mutedColorTag(fmt.Sprintf("updated in %ds", tElapsed)),
+				)
+			}
 		}
+
+		results = append(results, pluginResult{id: id, rc: rc, elapsed: tElapsed, status: status})
 	}
 	fmt.Println(divider)
 
@@ -349,10 +434,15 @@ func main() {
 
 	for i, r := range results {
 		var statusText string
-		if r.rc == 0 {
+		switch r.status {
+		case statusUpToDate:
+			statusText = lipgloss.NewStyle().Foreground(infoColor).Render("✔ Already up-to-date")
+		case statusUpdated:
 			statusText = successStyle.Render("✔ Updated")
-		} else {
+		case statusFailed:
 			statusText = errorStyle.Render(fmt.Sprintf("✖ Failed (%d)", r.rc))
+		case statusDryRun:
+			statusText = lipgloss.NewStyle().Foreground(warnColor).Render("⚡ Dry run")
 		}
 		tbl.Row(
 			fmt.Sprintf("%d", i+1),
@@ -392,17 +482,38 @@ func main() {
 	totalElapsed := int(time.Since(startTime).Seconds())
 	var summaryText strings.Builder
 
-	if failedCount == 0 {
-		summaryText.WriteString(fmt.Sprintf("%s All %d plugins updated successfully! %s\n",
-			successStyle.Render("✔"),
+	if dryRunFlag {
+		summaryText.WriteString(fmt.Sprintf("%s Dry run completed for %d plugins %s\n",
+			lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
 			total,
 			mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 		))
+	} else if failedCount == 0 {
+		if updatedCount == 0 {
+			summaryText.WriteString(fmt.Sprintf("%s All %d plugins are already up-to-date! %s\n",
+				successStyle.Render("✔"),
+				total,
+				mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
+			))
+		} else if upToDateCount == 0 {
+			summaryText.WriteString(fmt.Sprintf("%s All %d plugins updated successfully! %s\n",
+				successStyle.Render("✔"),
+				total,
+				mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
+			))
+		} else {
+			summaryText.WriteString(fmt.Sprintf("%s %d updated, %d already up-to-date %s\n",
+				successStyle.Render("✔"),
+				updatedCount,
+				upToDateCount,
+				mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
+			))
+		}
 	} else {
-		summaryText.WriteString(fmt.Sprintf("%s %d/%d succeeded, %d failed %s\n",
+		summaryText.WriteString(fmt.Sprintf("%s %d updated, %d already up-to-date, %d failed %s\n",
 			errorStyle.Render("▲"),
-			succeededCount,
-			total,
+			updatedCount,
+			upToDateCount,
 			failedCount,
 			mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 		))
