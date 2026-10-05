@@ -1,4 +1,4 @@
-module github.com/dustinmichels/update_plugins
+module github.com/dustinmichels/update-plugins
 
 go 1.26.3
 

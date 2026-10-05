@@ -1,4 +1,4 @@
-# update_plugins
+# update-plugins
 
 CLI utility to keep Claude Code plugins up to date and clean up cached dependencies.
 
@@ -18,24 +18,24 @@ Build and install to `~/dev/bin` via the functions Makefile:
 
 ```sh
 cd functions
-make update_plugins
+make update-plugins
 ```
 
 ## Usage
 
 ```sh
 # Run interactively (prompts for confirmation during updates/pruning)
-update_plugins
+update-plugins
 
 # Auto-accept all prompts
-update_plugins -y
-update_plugins --yes
+update-plugins -y
+update-plugins --yes
 
 # Dry run: preview actions without running claude commands
-update_plugins -d
-update_plugins --dry-run
+update-plugins -d
+update-plugins --dry-run
 
 # Show help
-update_plugins -h
-update_plugins --help
+update-plugins -h
+update-plugins --help
 ```
