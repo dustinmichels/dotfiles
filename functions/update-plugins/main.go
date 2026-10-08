@@ -1,13 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -74,14 +69,6 @@ var (
 			Padding(0, 2)
 )
 
-type installedPluginsFile struct {
-	Plugins map[string]json.RawMessage `json:"plugins"`
-}
-
-type pluginListItem struct {
-	ID string `json:"id"`
-}
-
 type pluginStatus int
 
 const (
@@ -89,14 +76,8 @@ const (
 	statusUpToDate
 	statusFailed
 	statusDryRun
+	statusSkipped
 )
-
-type pluginScopeEntry struct {
-	Scope        string `json:"scope"`
-	InstallPath  string `json:"installPath"`
-	Version      string `json:"version"`
-	GitCommitSha string `json:"gitCommitSha"`
-}
 
 type pluginResult struct {
 	id      string
@@ -104,71 +85,6 @@ type pluginResult struct {
 	elapsed int
 	status  pluginStatus
 }
-
-func runCmd(name string, args []string, stdin io.Reader, dryRun bool) (int, int) {
-	if dryRun {
-		fmt.Printf("   %s %s %s\n",
-			mutedColorTag("⚡ dry-run: would run:"),
-			name,
-			strings.Join(args, " "),
-		)
-		return 0, 0
-	}
-
-	tStart := time.Now()
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	tElapsed := int(time.Since(tStart).Seconds())
-	rc := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			rc = exitErr.ExitCode()
-		} else {
-			rc = 1
-		}
-	}
-	return rc, tElapsed
-}
-
-func parsePluginScopeEntries(raw json.RawMessage) []pluginScopeEntry {
-	var list []pluginScopeEntry
-	if err := json.Unmarshal(raw, &list); err == nil {
-		return list
-	}
-	var single pluginScopeEntry
-	if err := json.Unmarshal(raw, &single); err == nil {
-		return []pluginScopeEntry{single}
-	}
-	return nil
-}
-
-func getPluginFingerprint(homeDir string, id string) string {
-	pluginFile := filepath.Join(homeDir, ".claude", "plugins", "installed_plugins.json")
-	data, err := os.ReadFile(pluginFile)
-	if err != nil {
-		return ""
-	}
-	var parsed installedPluginsFile
-	if err := json.Unmarshal(data, &parsed); err != nil {
-		return ""
-	}
-	raw, ok := parsed.Plugins[id]
-	if !ok {
-		return ""
-	}
-	entries := parsePluginScopeEntries(raw)
-	var parts []string
-	for _, e := range entries {
-		parts = append(parts, fmt.Sprintf("%s|%s|%s|%s", e.Scope, e.Version, e.GitCommitSha, e.InstallPath))
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, ";")
-}
-
 
 func mutedColorTag(text string) string {
 	return lipgloss.NewStyle().Foreground(mutedColor).Render(text)
@@ -185,105 +101,189 @@ func printStepHeader(step, total, title, cmdNote string) {
 	}
 }
 
-func getInstalledPluginIDs(homeDir string) []string {
-	var pluginIDs []string
-
-	// 1. Try ~/.claude/plugins/installed_plugins.json
-	pluginFile := filepath.Join(homeDir, ".claude", "plugins", "installed_plugins.json")
-	if data, err := os.ReadFile(pluginFile); err == nil {
-		var parsed installedPluginsFile
-		if err := json.Unmarshal(data, &parsed); err == nil && len(parsed.Plugins) > 0 {
-			for id := range parsed.Plugins {
-				pluginIDs = append(pluginIDs, id)
-			}
-			sort.Strings(pluginIDs)
-			return pluginIDs
-		}
-	}
-
-	// 2. Fallback to `claude plugin list --json`
-	cmd := exec.Command("claude", "plugin", "list", "--json")
-	cmd.Stdin = strings.NewReader("")
-	out, err := cmd.Output()
-	if err == nil {
-		var list []pluginListItem
-		if err := json.Unmarshal(out, &list); err == nil {
-			for _, item := range list {
-				if item.ID != "" {
-					pluginIDs = append(pluginIDs, item.ID)
-				}
-			}
-			sort.Strings(pluginIDs)
-			return pluginIDs
-		}
-	}
-
-	return pluginIDs
-}
-
 func showHelp() {
 	title := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FFFFFF")).
 		Background(primaryColor).
 		Padding(0, 1).
-		Render("Claude Plugin Updater")
+		Render("Unified Agent Updater")
 
-	sub := lipgloss.NewStyle().Foreground(mutedColor).Render("Refreshes marketplaces, updates plugins, and prunes unused dependencies.")
+	sub := lipgloss.NewStyle().Foreground(mutedColor).Render("Refreshes marketplaces, updates plugins, prunes cache & reconciles skills across Claude, Codex, OMP, Pi & Gemini.")
 
 	usageHdr := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("USAGE")
 	flagsHdr := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("FLAGS")
 	exHdr := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render("EXAMPLES")
 
-	flagName := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#E0E7FF"))
-	flagDesc := lipgloss.NewStyle().Foreground(lipgloss.Color("#9CA3AF"))
+	flagName := lipgloss.NewStyle().Foreground(lipgloss.Color("#F3F4F6")).Bold(true)
+	flagDesc := lipgloss.NewStyle().Foreground(mutedColor)
 
-	fmt.Println()
 	fmt.Printf("%s\n%s\n\n", title, sub)
 	fmt.Printf("%s\n  update-plugins [flags]\n\n", usageHdr)
 	fmt.Printf("%s\n", flagsHdr)
-	fmt.Printf("  %s  %s\n", flagName.Render("-y, --yes    "), flagDesc.Render("Auto-accept prompts during updates and pruning"))
-	fmt.Printf("  %s  %s\n", flagName.Render("-d, --dry-run"), flagDesc.Render("Simulate the process without executing claude commands"))
-	fmt.Printf("  %s  %s\n\n", flagName.Render("-h, --help   "), flagDesc.Render("Show this help message"))
+	fmt.Printf("  %s  %s\n", flagName.Render("-y, --yes         "), flagDesc.Render("Auto-accept confirmation prompts"))
+	fmt.Printf("  %s  %s\n", flagName.Render("-d, --dry-run     "), flagDesc.Render("Simulate execution without running mutation commands"))
+	fmt.Printf("  %s  %s\n", flagName.Render("    --skills-only "), flagDesc.Render("Run only skill phases (Phases 1-4)"))
+	fmt.Printf("  %s  %s\n", flagName.Render("    --plugins-only"), flagDesc.Render("Run only plugin & marketplace phases (Phases 5-7)"))
+	fmt.Printf("  %s  %s\n", flagName.Render("    --skip-prune  "), flagDesc.Render("Skip cache pruning step"))
+	fmt.Printf("  %s  %s\n", flagName.Render("    --agents <list>"), flagDesc.Render("Comma-separated list of target agents (claude,codex,omp,gemini,pi)"))
+	fmt.Printf("  %s  %s\n", flagName.Render("    --all-skills  "), flagDesc.Render("Alias to include all global skill checks"))
+	fmt.Printf("  %s  %s\n\n", flagName.Render("-h, --help        "), flagDesc.Render("Show this help message"))
 	fmt.Printf("%s\n", exHdr)
-	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins             # Interactive mode")
-	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins -y          # Non-interactive auto-confirm")
-	fmt.Printf("  %s %s\n\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --dry-run   # Preview actions")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins               # Update all agent plugins and skills")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins -y            # Non-interactive auto-confirm")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --dry-run     # Preview execution actions")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --skills-only # Reconcile and update skills only")
+	fmt.Printf("  %s %s\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --agents claude,omp # Target specific agents")
+	fmt.Printf("  %s %s\n\n", lipgloss.NewStyle().Foreground(primaryColor).Render("•"), "update-plugins --skip-prune  # Keep older cached plugin versions")
+}
+
+func parseAgents(arg string) (map[string]bool, error) {
+	valid := map[string]bool{
+		"claude": true,
+		"codex":  true,
+		"omp":    true,
+		"gemini": true,
+		"pi":     true,
+	}
+
+	result := make(map[string]bool)
+	parts := strings.Split(arg, ",")
+	for _, p := range parts {
+		name := strings.ToLower(strings.TrimSpace(p))
+		if name == "" {
+			continue
+		}
+		if !valid[name] {
+			return nil, fmt.Errorf("unknown agent '%s' (valid: claude, codex, omp, gemini, pi)", name)
+		}
+		result[name] = true
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no valid agents specified in --agents list")
+	}
+	return result, nil
 }
 
 func main() {
 	yesFlag := false
 	dryRunFlag := false
+	skillsOnlyFlag := false
+	pluginsOnlyFlag := false
+	skipPruneFlag := false
+	allSkillsFlag := false
+	var agentsArg string
 
-	for _, arg := range os.Args[1:] {
-		switch arg {
-		case "-y", "--yes":
+	args := os.Args[1:]
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "-y" || arg == "--yes":
 			yesFlag = true
-		case "-d", "--dry-run":
+		case arg == "-d" || arg == "--dry-run":
 			dryRunFlag = true
-		case "-h", "--help":
+		case arg == "--skills-only":
+			skillsOnlyFlag = true
+		case arg == "--plugins-only":
+			pluginsOnlyFlag = true
+		case arg == "--skip-prune":
+			skipPruneFlag = true
+		case arg == "--all-skills":
+			allSkillsFlag = true
+		case arg == "--agents":
+			if i+1 < len(args) {
+				i++
+				agentsArg = args[i]
+			} else {
+				fmt.Printf("%s %s\n", errorStyle.Render("✖"), "--agents requires a comma-separated list of agents")
+				os.Exit(1)
+			}
+		case strings.HasPrefix(arg, "--agents="):
+			agentsArg = strings.TrimPrefix(arg, "--agents=")
+		case arg == "-h" || arg == "--help":
 			showHelp()
 			return
+		default:
+			fmt.Printf("%s Unknown flag: %s\n", errorStyle.Render("✖"), arg)
+			showHelp()
+			os.Exit(1)
 		}
 	}
+
+	if skillsOnlyFlag && pluginsOnlyFlag {
+		fmt.Printf("%s %s\n", errorStyle.Render("✖"), "Cannot specify both --skills-only and --plugins-only")
+		os.Exit(1)
+	}
+
+	enabledAgents := map[string]bool{
+		"claude": true,
+		"codex":  true,
+		"omp":    true,
+		"gemini": true,
+		"pi":     true,
+	}
+
+	if agentsArg != "" {
+		parsed, err := parseAgents(agentsArg)
+		if err != nil {
+			fmt.Printf("%s %s\n", errorStyle.Render("✖"), err.Error())
+			os.Exit(1)
+		}
+		enabledAgents = parsed
+	}
+
+	runSkills := !pluginsOnlyFlag
+	runPlugins := !skillsOnlyFlag
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		homeDir = os.Getenv("HOME")
 	}
 
+	// Count total steps
+	totalSteps := 0
+	if runSkills {
+		totalSteps += 4 // Phase 1, Phase 2, Phase 3, Phase 4
+	}
+	if runPlugins {
+		totalSteps += 2 // Phase 5, Phase 6
+		if !skipPruneFlag && enabledAgents["claude"] {
+			totalSteps++ // Phase 7
+		}
+	}
+
 	// Application Header Banner
-	bannerTitle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render("⚡ Claude Plugin Updater")
-	bannerDesc := lipgloss.NewStyle().Foreground(mutedColor).Render("Sync marketplaces, update installed plugins & prune cache")
+	bannerTitle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render("⚡ Unified Agent Updater")
+	var descParts []string
+	if runSkills {
+		descParts = append(descParts, "agent skills")
+	}
+	if runPlugins {
+		descParts = append(descParts, "marketplaces & plugins")
+	}
+	bannerDesc := lipgloss.NewStyle().Foreground(mutedColor).Render(fmt.Sprintf("Update %s across connected agents", strings.Join(descParts, " and ")))
 
 	var badges []string
 	if yesFlag {
-		badges = append(badges, modeBadge.Copy().Background(infoColor).Foreground(lipgloss.Color("#000000")).Render("AUTO-ACCEPT: ON"))
-	} else {
-		badges = append(badges, modeBadge.Copy().Background(secondaryColor).Foreground(lipgloss.Color("#E5E7EB")).Render("INTERACTIVE"))
+		badges = append(badges, modeBadge.Copy().Background(successColor).Foreground(lipgloss.Color("#FFFFFF")).Render("AUTO-CONFIRM"))
 	}
 	if dryRunFlag {
 		badges = append(badges, modeBadge.Copy().Background(warnColor).Foreground(lipgloss.Color("#000000")).Render("DRY RUN"))
+	}
+	if skillsOnlyFlag {
+		badges = append(badges, modeBadge.Copy().Background(secondaryColor).Foreground(lipgloss.Color("#E5E7EB")).Render("SKILLS ONLY"))
+	}
+	if pluginsOnlyFlag {
+		badges = append(badges, modeBadge.Copy().Background(secondaryColor).Foreground(lipgloss.Color("#E5E7EB")).Render("PLUGINS ONLY"))
+	}
+	if skipPruneFlag {
+		badges = append(badges, modeBadge.Copy().Background(secondaryColor).Foreground(lipgloss.Color("#E5E7EB")).Render("NO PRUNE"))
+	}
+	if allSkillsFlag {
+		badges = append(badges, modeBadge.Copy().Background(primaryColor).Foreground(lipgloss.Color("#FFFFFF")).Render("ALL SKILLS"))
+	}
+	if agentsArg != "" {
+		badges = append(badges, modeBadge.Copy().Background(primaryColor).Foreground(lipgloss.Color("#FFFFFF")).Render("AGENTS: "+agentsArg))
 	}
 
 	headerContent := fmt.Sprintf("%s  %s\n%s",
@@ -291,146 +291,255 @@ func main() {
 		strings.Join(badges, " "),
 		bannerDesc,
 	)
-	fmt.Println()
 	fmt.Println(headerBox.Render(headerContent))
 
 	startTime := time.Now()
-
-	// [1/3] Updating marketplace catalogs...
-	printStepHeader("1", "3", "Updating marketplace catalogs...", "claude plugin marketplace update </dev/null")
-	rc, tElapsed := runCmd("claude", []string{"plugin", "marketplace", "update"}, strings.NewReader(""), dryRunFlag)
-	if rc == 0 {
-		fmt.Printf("   %s Marketplaces refreshed %s\n",
-			successStyle.Render("✔"),
-			mutedColorTag(fmt.Sprintf("(%ds)", tElapsed)),
-		)
-	} else {
-		fmt.Printf("   %s Marketplaces update failed %s\n",
-			errorStyle.Render("✖"),
-			mutedColorTag(fmt.Sprintf("(exit %d, %ds)", rc, tElapsed)),
-		)
-	}
-
-	// [2/3] Checking installed plugins...
-	printStepHeader("2", "3", "Checking installed plugins...", "claude plugin update <id>")
-
-	pluginIDs := getInstalledPluginIDs(homeDir)
-	total := len(pluginIDs)
-	if total == 0 {
-		warnCard := lipgloss.NewStyle().
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(warnColor).
-			Padding(0, 1).
-			Render(fmt.Sprintf("%s No installed plugins found in %s or claude CLI.", warnStyle.Render("▲ Warning:"), homeDir))
-		fmt.Println(warnCard)
-		os.Exit(1)
-	}
-
-	fmt.Printf("   Found %s installed plugins:\n", lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render(fmt.Sprintf("%d", total)))
-	for i, id := range pluginIDs {
-		bullet := lipgloss.NewStyle().Foreground(primaryColor).Render("•")
-		num := mutedColorTag(fmt.Sprintf("%d.", i+1))
-		fmt.Printf("     %s %s %s\n", bullet, num, pluginNameStyle.Render(id))
-	}
-	fmt.Println()
-
+	currentStep := 1
 	var results []pluginResult
+
+	// ==========================================
+	// Phase 1: Tool Binaries
+	// ==========================================
+	if runSkills {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Updating tool binaries...", "uv tool upgrade browser-use && browser-use --reload")
+		currentStep++
+
+		buRes, ok := runPhaseBinaries(homeDir, yesFlag, dryRunFlag)
+		if ok {
+			results = append(results, buRes)
+			switch buRes.status {
+			case statusDryRun:
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
+					pluginNameStyle.Render(buRes.id),
+					mutedColorTag("simulated"),
+				)
+			case statusFailed:
+				fmt.Printf("   %s %s %s\n",
+					errorStyle.Render("✖"),
+					pluginNameStyle.Render(buRes.id),
+					errorStyle.Render(fmt.Sprintf("failed (exit %d in %ds)", buRes.rc, buRes.elapsed)),
+				)
+			case statusUpToDate:
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(infoColor).Render("✔"),
+					pluginNameStyle.Render(buRes.id),
+					mutedColorTag(fmt.Sprintf("already up-to-date (%ds)", buRes.elapsed)),
+				)
+			case statusUpdated:
+				fmt.Printf("   %s %s %s\n",
+					successStyle.Render("✔"),
+					pluginNameStyle.Render(buRes.id),
+					mutedColorTag(fmt.Sprintf("updated in %ds", buRes.elapsed)),
+				)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 2: Canonical Skills Hub
+	// ==========================================
+	if runSkills {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Updating canonical skills hub...", "npx skills update -g -y")
+		currentStep++
+
+		hubRes, ok := runPhaseCanonicalSkills(homeDir, dryRunFlag)
+		if ok {
+			results = append(results, hubRes)
+			switch hubRes.status {
+			case statusDryRun:
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
+					pluginNameStyle.Render(hubRes.id),
+					mutedColorTag("simulated"),
+				)
+			case statusFailed:
+				fmt.Printf("   %s %s %s\n",
+					errorStyle.Render("✖"),
+					pluginNameStyle.Render(hubRes.id),
+					errorStyle.Render(fmt.Sprintf("failed (exit %d in %ds)", hubRes.rc, hubRes.elapsed)),
+				)
+			default:
+				fmt.Printf("   %s %s %s\n",
+					successStyle.Render("✔"),
+					pluginNameStyle.Render(hubRes.id),
+					mutedColorTag(fmt.Sprintf("updated in %ds", hubRes.elapsed)),
+				)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 3: Standalone Tool Skill Generation
+	// ==========================================
+	if runSkills {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Generating standalone tool skills...", "browser-use skill install --no-install")
+		currentStep++
+
+		buSkillRes, ok := runPhaseStandaloneSkills(homeDir, dryRunFlag)
+		if ok {
+			results = append(results, buSkillRes)
+			switch buSkillRes.status {
+			case statusDryRun:
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
+					pluginNameStyle.Render(buSkillRes.id),
+					mutedColorTag("simulated"),
+				)
+			case statusFailed:
+				fmt.Printf("   %s %s %s\n",
+					errorStyle.Render("✖"),
+					pluginNameStyle.Render(buSkillRes.id),
+					errorStyle.Render(fmt.Sprintf("failed (exit %d in %ds)", buSkillRes.rc, buSkillRes.elapsed)),
+				)
+			case statusUpToDate:
+				fmt.Printf("   %s %s %s\n",
+					lipgloss.NewStyle().Foreground(infoColor).Render("✔"),
+					pluginNameStyle.Render(buSkillRes.id),
+					mutedColorTag(fmt.Sprintf("already up-to-date (%ds)", buSkillRes.elapsed)),
+				)
+			case statusUpdated:
+				fmt.Printf("   %s %s %s\n",
+					successStyle.Render("✔"),
+					pluginNameStyle.Render(buSkillRes.id),
+					mutedColorTag(fmt.Sprintf("updated in %ds", buSkillRes.elapsed)),
+				)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 4: Hub-and-Spoke Reconciliation
+	// ==========================================
+	if runSkills {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Reconciling hub-and-spoke skills...", "sync ~/.agents/skills -> ~/.claude, ~/.pi, ~/.gemini, ~/.omp")
+		currentStep++
+
+		reconRes, stats := runPhaseReconcile(homeDir, enabledAgents, dryRunFlag)
+		results = append(results, reconRes)
+
+		if stats.HealedCount > 0 {
+			fmt.Printf("   %s Healed %d missing skill link(s): %s\n",
+				successStyle.Render("✔"),
+				stats.HealedCount,
+				mutedColorTag(strings.Join(stats.HealedNames, ", ")),
+			)
+		}
+		if stats.PrunedCount > 0 {
+			fmt.Printf("   %s Pruned %d dangling skill link(s): %s\n",
+				warnStyle.Render("✂"),
+				stats.PrunedCount,
+				mutedColorTag(strings.Join(stats.PrunedNames, ", ")),
+			)
+		}
+		if stats.HealedCount == 0 && stats.PrunedCount == 0 {
+			fmt.Printf("   %s All agent skill spokes are healthy and in sync\n",
+				lipgloss.NewStyle().Foreground(infoColor).Render("✔"))
+		}
+	}
+
+	// ==========================================
+	// Phase 5: Remote Marketplaces
+	// ==========================================
+	if runPlugins {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Refreshing remote marketplaces...", "claude, codex, omp marketplace updates")
+		currentStep++
+
+		mpResults := runPhaseMarketplaces(homeDir, enabledAgents, dryRunFlag)
+		for _, r := range mpResults {
+			results = append(results, r)
+			if r.status == statusFailed {
+				fmt.Printf("   %s %s failed (exit %d in %ds)\n",
+					errorStyle.Render("✖"), pluginNameStyle.Render(r.id), r.rc, r.elapsed)
+			} else {
+				fmt.Printf("   %s %s refreshed (%ds)\n",
+					successStyle.Render("✔"), pluginNameStyle.Render(r.id), r.elapsed)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 6: Agent-Specific Plugins
+	// ==========================================
+	if runPlugins {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Updating agent-specific plugins...", "claude, codex, omp plugin updates")
+		currentStep++
+
+		pluginResults := runPhasePlugins(homeDir, enabledAgents, yesFlag, dryRunFlag)
+		for _, r := range pluginResults {
+			results = append(results, r)
+			switch r.status {
+			case statusFailed:
+				fmt.Printf("   %s %s failed (exit %d in %ds)\n",
+					errorStyle.Render("✖"), pluginNameStyle.Render(r.id), r.rc, r.elapsed)
+			case statusUpToDate:
+				fmt.Printf("   %s %s already up-to-date (%ds)\n",
+					lipgloss.NewStyle().Foreground(infoColor).Render("✔"), pluginNameStyle.Render(r.id), r.elapsed)
+			case statusDryRun:
+				fmt.Printf("   %s %s simulated\n",
+					lipgloss.NewStyle().Foreground(warnColor).Render("⚡"), pluginNameStyle.Render(r.id))
+			default:
+				fmt.Printf("   %s %s updated (%ds)\n",
+					successStyle.Render("✔"), pluginNameStyle.Render(r.id), r.elapsed)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 7: Cache Pruning
+	// ==========================================
+	if runPlugins && !skipPruneFlag && enabledAgents["claude"] {
+		printStepHeader(fmt.Sprintf("%d", currentStep), fmt.Sprintf("%d", totalSteps),
+			"Pruning unused plugin cache...", "claude plugin prune -y (guarded by process checks)")
+		currentStep++
+
+		pruneRes, ok := runPhasePrune(homeDir, yesFlag, dryRunFlag, skipPruneFlag)
+		if ok {
+			results = append(results, pruneRes)
+			if pruneRes.status == statusSkipped {
+				fmt.Printf("   %s Cache pruning skipped\n", mutedColorTag("⊝"))
+			} else if pruneRes.status == statusFailed {
+				fmt.Printf("   %s Cache pruning failed (exit %d)\n", errorStyle.Render("✖"), pruneRes.rc)
+			} else {
+				fmt.Printf("   %s Prune completed (%ds)\n", successStyle.Render("✔"), pruneRes.elapsed)
+			}
+		}
+	}
+
+	// ==========================================
+	// Phase 8: Results Summary & Reload Hints
+	// ==========================================
 	var updatedCount int
 	var upToDateCount int
 	var failedCount int
+	var skippedCount int
 
-	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("#374151")).Render("   ───────────────────────────────────────────────────")
-
-	for idx, id := range pluginIDs {
-		fmt.Println(divider)
-		prefix := lipgloss.NewStyle().Bold(true).Foreground(accentColor).Render(fmt.Sprintf("   [%d/%d]", idx+1, total))
-		fmt.Printf("%s Updating %s\n", prefix, pluginNameStyle.Render(id))
-
-		args := []string{"plugin", "update", id}
-		if yesFlag {
-			args = append(args, "-y")
-		}
-
-		beforeFP := ""
-		if !dryRunFlag {
-			beforeFP = getPluginFingerprint(homeDir, id)
-		}
-
-		rc, tElapsed := runCmd("claude", args, os.Stdin, dryRunFlag)
-
-		var status pluginStatus
-		if dryRunFlag {
-			status = statusDryRun
-			fmt.Printf("   %s %s %s\n",
-				lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
-				pluginNameStyle.Render(id),
-				mutedColorTag("simulated"),
-			)
-		} else if rc != 0 {
+	for _, r := range results {
+		switch r.status {
+		case statusUpdated:
+			updatedCount++
+		case statusUpToDate:
+			upToDateCount++
+		case statusFailed:
 			failedCount++
-			status = statusFailed
-			fmt.Printf("   %s %s %s\n",
-				errorStyle.Render("✖"),
-				pluginNameStyle.Render(id),
-				errorStyle.Render(fmt.Sprintf("failed (exit %d in %ds)", rc, tElapsed)),
-			)
-		} else {
-			afterFP := getPluginFingerprint(homeDir, id)
-			isUpToDate := false
-			if beforeFP != "" && afterFP != "" {
-				isUpToDate = (beforeFP == afterFP)
-			}
-			if isUpToDate {
-				upToDateCount++
-				status = statusUpToDate
-				fmt.Printf("   %s %s %s\n",
-					lipgloss.NewStyle().Foreground(infoColor).Render("✔"),
-					pluginNameStyle.Render(id),
-					mutedColorTag(fmt.Sprintf("already up-to-date (%ds)", tElapsed)),
-				)
-			} else {
-				updatedCount++
-				status = statusUpdated
-				fmt.Printf("   %s %s %s\n",
-					successStyle.Render("✔"),
-					pluginNameStyle.Render(id),
-					mutedColorTag(fmt.Sprintf("updated in %ds", tElapsed)),
-				)
-			}
+		case statusSkipped:
+			skippedCount++
 		}
-
-		results = append(results, pluginResult{id: id, rc: rc, elapsed: tElapsed, status: status})
-	}
-	fmt.Println(divider)
-
-	// [3/3] Pruning unused dependencies...
-	printStepHeader("3", "3", "Pruning unused dependencies...", "claude plugin prune")
-	pruneArgs := []string{"plugin", "prune"}
-	if yesFlag {
-		pruneArgs = append(pruneArgs, "-y")
 	}
 
-	rc, tElapsed = runCmd("claude", pruneArgs, os.Stdin, dryRunFlag)
-	if rc == 0 {
-		fmt.Printf("   %s Prune completed %s\n\n",
-			successStyle.Render("✔"),
-			mutedColorTag(fmt.Sprintf("(%ds)", tElapsed)),
-		)
-	} else {
-		fmt.Printf("   %s Prune failed %s\n\n",
-			errorStyle.Render("✖"),
-			mutedColorTag(fmt.Sprintf("(exit %d, %ds)", rc, tElapsed)),
-		)
-	}
-
-	// Summary Table
-	summaryHeader := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render("Plugin Results Summary")
-	fmt.Printf("   %s\n", summaryHeader)
+	summaryHeader := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFFFF")).Render("Results Summary")
+	fmt.Printf("\n   %s\n", summaryHeader)
 
 	tbl := table.New().
 		Border(lipgloss.RoundedBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(secondaryColor)).
-		Headers("#", "PLUGIN", "STATUS", "DURATION")
+		Headers("#", "ITEM", "STATUS", "DURATION")
 
 	for i, r := range results {
 		var statusText string
@@ -443,6 +552,8 @@ func main() {
 			statusText = errorStyle.Render(fmt.Sprintf("✖ Failed (%d)", r.rc))
 		case statusDryRun:
 			statusText = lipgloss.NewStyle().Foreground(warnColor).Render("⚡ Dry run")
+		case statusSkipped:
+			statusText = lipgloss.NewStyle().Foreground(mutedColor).Render("⊝ Skipped")
 		}
 		tbl.Row(
 			fmt.Sprintf("%d", i+1),
@@ -472,33 +583,32 @@ func main() {
 		}
 	})
 
-	// Indent table slightly
 	tableRendered := tbl.Render()
 	for _, line := range strings.Split(tableRendered, "\n") {
 		fmt.Printf("   %s\n", line)
 	}
 
-	// Overall Summary Box
+	totalItems := len(results)
 	totalElapsed := int(time.Since(startTime).Seconds())
 	var summaryText strings.Builder
 
 	if dryRunFlag {
-		summaryText.WriteString(fmt.Sprintf("%s Dry run completed for %d plugins %s\n",
+		summaryText.WriteString(fmt.Sprintf("%s Dry run completed for %d items %s\n",
 			lipgloss.NewStyle().Foreground(warnColor).Render("⚡"),
-			total,
+			totalItems,
 			mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 		))
 	} else if failedCount == 0 {
 		if updatedCount == 0 {
-			summaryText.WriteString(fmt.Sprintf("%s All %d plugins are already up-to-date! %s\n",
+			summaryText.WriteString(fmt.Sprintf("%s All %d items are already up-to-date! %s\n",
 				successStyle.Render("✔"),
-				total,
+				totalItems,
 				mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 			))
 		} else if upToDateCount == 0 {
-			summaryText.WriteString(fmt.Sprintf("%s All %d plugins updated successfully! %s\n",
+			summaryText.WriteString(fmt.Sprintf("%s All %d items updated successfully! %s\n",
 				successStyle.Render("✔"),
-				total,
+				totalItems,
 				mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 			))
 		} else {
@@ -518,7 +628,27 @@ func main() {
 			mutedColorTag(fmt.Sprintf("(Total time: %ds)", totalElapsed)),
 		))
 	}
-	summaryText.WriteString(mutedColorTag("Tip: Restart Claude or run /reload-plugins in omp to activate changes."))
+
+	// Active Process Signals (Phase 8)
+	var reloadHints []string
+	if enabledAgents["omp"] && isProcessRunning("omp") {
+		reloadHints = append(reloadHints, "• OMP session active: run /reload-plugins to activate changes.")
+	}
+	if enabledAgents["claude"] && isProcessRunning("claude") {
+		reloadHints = append(reloadHints, "• Claude Code session active: restart session to activate changes.")
+	}
+	if enabledAgents["codex"] && isProcessRunning("codex") {
+		reloadHints = append(reloadHints, "• Codex session active: restart application window to activate changes.")
+	}
+
+	if len(reloadHints) > 0 {
+		summaryText.WriteString("\n" + lipgloss.NewStyle().Foreground(infoColor).Bold(true).Render("Active Processes:") + "\n")
+		for _, hint := range reloadHints {
+			summaryText.WriteString("  " + lipgloss.NewStyle().Foreground(warnColor).Render(hint) + "\n")
+		}
+	} else {
+		summaryText.WriteString(mutedColorTag("Tip: Restart Claude or run /reload-plugins in omp to activate changes."))
+	}
 
 	fmt.Println()
 	fmt.Println(summaryBox.Render(summaryText.String()))
