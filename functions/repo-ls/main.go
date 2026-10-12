@@ -31,7 +31,7 @@ FLAGS:
   -h, --help       Show help
   -d, --depth      Maximum directory depth to search (default: 6)
   -p, --plain      Print plain text list of repositories and exit (non-interactive)
-  -s, --sort       Sort order: path, name, modified, created, dirty (default: path)
+  -s, --sort       Sort order: path, name, modified, created, dirty (default: modified)
 
 EXAMPLES:
   repo-ls                  # Scan current directory (or ~/GitRepos)
@@ -58,8 +58,8 @@ func main() {
 	flag.IntVar(&depthFlag, "depth", 6, "Maximum directory scan depth")
 	flag.BoolVar(&plainFlag, "p", false, "Plain text list output")
 	flag.BoolVar(&plainFlag, "plain", false, "Plain text list output")
-	flag.StringVar(&sortFlag, "s", "path", "Sort order: path, name, modified, created, dirty")
-	flag.StringVar(&sortFlag, "sort", "path", "Sort order: path, name, modified, created, dirty")
+	flag.StringVar(&sortFlag, "s", "modified", "Sort order: path, name, modified, created, dirty")
+	flag.StringVar(&sortFlag, "sort", "modified", "Sort order: path, name, modified, created, dirty")
 	flag.Usage = printHelp
 	flag.Parse()
 
@@ -143,9 +143,7 @@ func main() {
 	// Run interactive TUI
 	// Run interactive TUI
 	m := ui.NewModel(absTarget, repos)
-	if initialSort != models.SortPath {
-		m.SetSortMode(initialSort)
-	}
+	m.SetSortMode(initialSort)
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	if _, err := p.Run(); err != nil {
