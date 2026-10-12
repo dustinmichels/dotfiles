@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -662,7 +663,6 @@ func TestColumnAlignment(t *testing.T) {
 	}
 }
 
-
 func TestParentFilteredOutFallback(t *testing.T) {
 	now := time.Now()
 	repos := []*models.Repo{
@@ -745,7 +745,7 @@ func TestTopListSortingWithFolders(t *testing.T) {
 			Name:         "zebra",
 			Branch:       "main",
 			DateCreated:  now.Add(-100 * 24 * time.Hour), // Oldest
-			LastModified: now.Add(-1 * time.Minute),        // Newest modified
+			LastModified: now.Add(-1 * time.Minute),      // Newest modified
 		},
 		{
 			Path:         "/root/archive/old1",
@@ -760,7 +760,7 @@ func TestTopListSortingWithFolders(t *testing.T) {
 			RelPath:      "apple",
 			Name:         "apple",
 			Branch:       "main",
-			DateCreated:  now.Add(-1 * 24 * time.Hour),  // Newest created
+			DateCreated:  now.Add(-1 * 24 * time.Hour), // Newest created
 			LastModified: now.Add(-2 * 24 * time.Hour), // Middle modified
 		},
 	}
@@ -889,25 +889,77 @@ func TestCollapseAndExpandShortcuts(t *testing.T) {
 	}
 }
 
+func TestRecentReposDefaultAndShowAllToggle(t *testing.T) {
+	now := time.Now()
+	repos := make([]*models.Repo, 12)
+	for i := range repos {
+		repos[i] = &models.Repo{
+			Path:         filepath.Join("/root", fmt.Sprintf("repo-%02d", i)),
+			RelPath:      fmt.Sprintf("repo-%02d", i),
+			Name:         fmt.Sprintf("repo-%02d", i),
+			LastModified: now.Add(-time.Duration(i) * time.Hour),
+		}
+	}
+
+	m := NewModel("/root", repos)
+	if m.showAll {
+		t.Fatal("expected recent-only view by default")
+	}
+	if m.sortMode != models.SortModified {
+		t.Fatalf("expected Last Modified sort by default, got %v", m.sortMode)
+	}
+	if len(m.filtered) != recentRepoLimit {
+		t.Fatalf("expected %d recent repos, got %d", recentRepoLimit, len(m.filtered))
+	}
+	for i, repo := range m.filtered {
+		if repo.Name != fmt.Sprintf("repo-%02d", i) {
+			t.Fatalf("repo %d: expected repo-%02d, got %s", i, i, repo.Name)
+		}
+	}
+	if !strings.Contains(m.renderControls(), "Show all") {
+		t.Fatal("expected Show all button in recent view")
+	}
+
+	updated, _ := m.Update(tea.MouseMsg{
+		X:      0,
+		Y:      1,
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+	})
+	m = updated.(Model)
+	if !m.showAll || len(m.filtered) != len(repos) {
+		t.Fatalf("expected all %d repos after clicking Show all, got %d", len(repos), len(m.filtered))
+	}
+	if !strings.Contains(m.renderControls(), "Recent 10") {
+		t.Fatal("expected Recent 10 button in all-repositories view")
+	}
+
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m = updated.(Model)
+	if m.showAll || len(m.filtered) != recentRepoLimit {
+		t.Fatalf("expected keyboard toggle to restore %d recent repos, got %d", recentRepoLimit, len(m.filtered))
+	}
+}
+
 func TestSortCycleForwardAndBackward(t *testing.T) {
 	repos := makeTestRepos()
 	m := NewModel("/root", repos)
 
-	if m.sortMode != models.SortPath {
-		t.Fatalf("expected initial SortPath, got %v", m.sortMode)
+	if m.sortMode != models.SortModified {
+		t.Fatalf("expected initial SortModified, got %v", m.sortMode)
 	}
 
 	// Forward with 's'
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	m = updated.(Model)
-	if m.sortMode != models.SortName {
-		t.Errorf("expected SortName after 's', got %v", m.sortMode)
+	if m.sortMode != models.SortCreated {
+		t.Errorf("expected SortCreated after 's', got %v", m.sortMode)
 	}
 
 	// Backward with 'S'
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
 	m = updated.(Model)
-	if m.sortMode != models.SortPath {
-		t.Errorf("expected SortPath after 'S', got %v", m.sortMode)
+	if m.sortMode != models.SortModified {
+		t.Errorf("expected SortModified after 'S', got %v", m.sortMode)
 	}
 }

@@ -29,6 +29,7 @@ type ghEnrichMsg struct {
 }
 
 type statusClearMsg struct{}
+
 // TableItemKind represents whether an item is a repository or a folder group header.
 type TableItemKind int
 
@@ -36,6 +37,8 @@ const (
 	ItemKindRepo TableItemKind = iota
 	ItemKindFolder
 )
+
+const recentRepoLimit = 10
 
 // TableItem is a single row in the explorer table.
 type TableItem struct {
@@ -63,6 +66,7 @@ type Model struct {
 	height             int
 	filterMode         models.FilterMode
 	sortMode           models.SortMode
+	showAll            bool
 	searchInput        textinput.Model
 	searching          bool
 	tokeiCache         map[string]*models.TokeiStats
@@ -102,7 +106,7 @@ func NewModel(rootDir string, repos []*models.Repo) Model {
 		searchInput:        ti,
 		deleteConfirmInput: delInput,
 		filterMode:         models.FilterAll,
-		sortMode:           models.SortPath,
+		sortMode:           models.SortModified,
 		width:              110,
 		height:             30,
 	}
@@ -205,7 +209,12 @@ func (m *Model) applyFiltersAndSort() {
 		filtered = append(filtered, r)
 	}
 
-	// 3. Sort
+	// 3. Keep the most recently modified repositories in the default view,
+	// then apply the user's selected display order.
+	models.SortRepos(filtered, models.SortModified)
+	if !m.showAll && len(filtered) > recentRepoLimit {
+		filtered = filtered[:recentRepoLimit]
+	}
 	models.SortRepos(filtered, m.sortMode)
 
 	m.filtered = filtered
@@ -990,6 +999,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.loadTokeiCmd(cur.Path))
 			}
 
+		// View
+		case "v":
+			m.showAll = !m.showAll
+			m.applyFiltersAndSort()
+
 		// Sorting
 		case "s":
 			m.sortMode = (m.sortMode + 1) % 5
@@ -1039,6 +1053,12 @@ func (m *Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
 	switch msg.Action {
 	case tea.MouseActionPress:
 		if msg.Button == tea.MouseButtonLeft {
+			if msg.Y == 1 && msg.X < lipgloss.Width(m.renderViewToggle()) {
+				m.showAll = !m.showAll
+				m.applyFiltersAndSort()
+				return nil
+			}
+
 			// Calculate table header height
 			headerH := 5
 			if m.searching || m.searchInput.Value() != "" {
@@ -1403,6 +1423,7 @@ func (m Model) renderControls() string {
 		m.formatFilterTab("Private", models.FilterPrivate, "P"),
 	}
 
+	viewToggle := m.renderViewToggle()
 	filterBar := strings.Join(filterItems, " ")
 	sortStr := fmt.Sprintf("Sort: %s (s)", accentStyle.Render(m.sortMode.String()))
 	tabHint := dimStyle.Render("Tab: filter")
@@ -1415,17 +1436,25 @@ func (m Model) renderControls() string {
 		countStr = dimStyle.Render(countStr)
 	}
 
-	line := fmt.Sprintf("%s   %s   %s   %s   %s", filterBar, sortStr, tabHint, searchHint, countStr)
+	line := fmt.Sprintf("%s %s   %s   %s   %s   %s", viewToggle, filterBar, sortStr, tabHint, searchHint, countStr)
 	if lipgloss.Width(line) > m.width {
-		line = fmt.Sprintf("%s   %s   %s   %s", filterBar, sortStr, tabHint, countStr)
+		line = fmt.Sprintf("%s %s   %s   %s   %s", viewToggle, filterBar, sortStr, tabHint, countStr)
 	}
 	if lipgloss.Width(line) > m.width {
-		line = fmt.Sprintf("%s   %s   %s", filterBar, sortStr, countStr)
+		line = fmt.Sprintf("%s %s   %s   %s", viewToggle, filterBar, sortStr, countStr)
 	}
 	if lipgloss.Width(line) > m.width {
-		line = fmt.Sprintf("%s   %s", filterBar, sortStr)
+		line = fmt.Sprintf("%s %s   %s", viewToggle, filterBar, sortStr)
 	}
 	return line
+}
+
+func (m Model) renderViewToggle() string {
+	label := "[v] Show all"
+	if m.showAll {
+		label = "[v] Recent 10"
+	}
+	return titleStyle.Render(label)
 }
 
 func (m Model) formatFilterTab(label string, mode models.FilterMode, key string) string {
@@ -1462,11 +1491,11 @@ func (m Model) renderTable(width int, height int) string {
 	var lines []string
 
 	const (
-		stColW       = 2  // "ST"
-		branchColW   = 12 // "BRANCH"
-		visColW      = 10 // "VISIBILITY"
-		createdColW  = 12 // "DATE-CREATED"
-		modifiedColW = 13 // "LAST-MODIFIED"
+		stColW       = 2                                                                                  // "ST"
+		branchColW   = 12                                                                                 // "BRANCH"
+		visColW      = 10                                                                                 // "VISIBILITY"
+		createdColW  = 12                                                                                 // "DATE-CREATED"
+		modifiedColW = 13                                                                                 // "LAST-MODIFIED"
 		fixedCols    = 1 + stColW + 2 + 2 + branchColW + 2 + visColW + 2 + createdColW + 2 + modifiedColW // = 60
 	)
 
