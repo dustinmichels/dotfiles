@@ -57,8 +57,8 @@ func TestCaskColorInRenderTableView(t *testing.T) {
 	if !strings.Contains(caskLine, "cask-a") {
 		t.Fatalf("expected line 3 to contain cask-a, got %q", caskLine)
 	}
-	if !strings.Contains(caskLine, "\x1b[38;2;236;72;153m") {
-		t.Errorf("expected line 3 to be styled with caskColor (#EC4899), got: %q", caskLine)
+	if !strings.Contains(caskLine, "\x1b[38;2;192;131;252m") {
+		t.Errorf("expected line 3 to be styled with caskColor (#C084FC), got: %q", caskLine)
 	}
 }
 
