@@ -308,7 +308,7 @@ var (
 	subtleColor   = lipgloss.AdaptiveColor{Light: "#888888", Dark: "#777777"}
 	accentColor   = lipgloss.AdaptiveColor{Light: "#5A56E0", Dark: "#7D56F4"}
 	formulaColor  = lipgloss.Color("#22C55E")
-	caskColor     = lipgloss.Color("#EC4899")
+	caskColor     = lipgloss.Color("#C084FC")
 	selectedColor = lipgloss.Color("#38BDF8")
 
 	titleStyle = lipgloss.NewStyle().
