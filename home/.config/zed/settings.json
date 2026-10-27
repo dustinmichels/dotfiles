@@ -32,6 +32,10 @@
     "..."
   ],
   "file_types": {
+    "Git Ignore": [
+      ".gitignore",
+      "**/.gitignore"
+    ],
     "Shell Script": [
       ".Brewfile",
       "**/.Brewfile",
@@ -42,8 +46,18 @@
     ]
   },
   "format_on_save": "on",
-  "icon_theme": "Catppuccin Frappé",
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Catppuccin Frappé",
+    "dark": "Catppuccin Frappé"
+  },
   "languages": {
+    "Git Ignore": {
+      "enable_language_server": false
+    },
+    "Plain Text": {
+      "enable_language_server": false
+    },
     "CSS": {
       "prettier": {
         "allowed": false
@@ -177,8 +191,15 @@
     }
   },
   "terminal": {
-    "font_family": "FiraCode Nerd Font Mono"
+    "font_family": "FiraCode Nerd Font Mono",
+    "toolbar": {
+      "breadcrumbs": true
+    }
   },
-  "theme": "One Dark",
+  "theme": {
+    "mode": "dark",
+    "light": "One Light",
+    "dark": "One Dark"
+  },
   "ui_font_size": 16
 }

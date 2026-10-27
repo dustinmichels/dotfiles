@@ -4,12 +4,11 @@ modelRoles:
   advisor: anthropic/claude-opus-5-5
   speech: local/kokoro
   judge: openrouter/~typesafe/jev-latest
-  default: google-antigravity/gemini-3.8-flash:high
+  default: anthropic/claude-opus-5-5
 advisor:
   enabled: true
 retry:
-  fallbackChains:
-    {}
+  fallbackChains: {}
 dev:
   autoqaConsent: granted
 codexResets:

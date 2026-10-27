@@ -1,27 +1,35 @@
 [tools]
 bun = "latest"
+cmake = "4.4.4"
 duckdb = "latest"
 go = "latest"
+"go:golang.org/x/tools/gopls" = "latest"
 java = "latest"
 node = "latest"
 npm = "latest"
-"npm:@alibaba-group/open-code-review" = { version = "latest", trust_policy_excludes = "@alibaba-group/open-code-review" }
 "npm:@colbymchenry/codegraph" = "latest"
+"npm:@excalidraw/cli" = "latest"
 "npm:@google/clasp" = "latest"
 "npm:@shopify/cli" = "latest"
+"npm:@tailwindcss/language-server" = "latest"
 "npm:@vue/language-server" = "latest"
+"npm:browserify" = "latest"
 "npm:clerk" = "latest"
+"npm:docsify-cli" = "latest"
 "npm:netlify-cli" = { version = "latest", trust_policy_excludes = [
   "@netlify/serverless-functions-api",
 ] }
 "npm:oxfmt" = "latest"
 "npm:prettier" = "latest"
+"npm:pyright" = "latest"
 "npm:typescript-language-server" = "latest"
+"pipx:kanban-mcp" = "latest"
 python = "latest"
 ruff = "latest"
 rust = "latest"
 usage = "latest"
 uv = "latest"
+viteplus = "latest"
 zoxide = "latest"
 
 [settings]
