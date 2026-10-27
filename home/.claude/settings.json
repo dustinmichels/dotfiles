@@ -53,10 +53,7 @@
     "claude-security@claude-plugins-official": true,
     "liquid-skills@claude-plugins-official": true,
     "netlify-skills@claude-plugins-official": true,
-    "liquid-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "liquid-lsp@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "ponytail": {

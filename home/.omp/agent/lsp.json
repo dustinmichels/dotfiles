@@ -30,6 +30,16 @@
       "args": ["--stdio", "--tsdk=./node_modules/typescript/lib"],
       "fileTypes": [".vue"],
       "rootMarkers": ["vue.config.js", "nuxt.config.js", "nuxt.config.ts", "package.json"]
+    },
+    "tailwindcss": {
+      "command": "/Users/dustinmichels/.local/share/mise/shims/tailwindcss-language-server",
+      "fileTypes": [".html", ".css", ".ts", ".tsx", ".js", ".jsx", ".vue"],
+      "rootMarkers": ["tailwind.config.js", "tailwind.config.ts", "package.json"],
+      "settings": {
+        "tailwindCSS": {
+          "lint": { "suggestCanonicalClasses": "warning" }
+        }
+      }
     }
   }
 }

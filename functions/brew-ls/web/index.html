@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>brew-ls</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>brew-ls</h1>
+    <p class="summary" id="summary">Reading your Cellar…</p>
+    <button type="button" class="btn btn-primary" id="add-btn">Add package</button>
+  </header>
+
+  <section class="shelf" aria-label="Packages by install month">
+    <div class="shelf-scroll" id="shelf"></div>
+    <p class="shelf-legend">
+      <span class="key key-formula"></span>Formula
+      <span class="key key-cask"></span>Cask
+      <span class="key key-outdated"></span>Update available
+      <span class="shelf-hint">Click a year to show only packages installed that year.</span>
+    </p>
+  </section>
+
+  <div class="toolbar">
+    <label class="search">
+      <span class="visually-hidden">Filter installed packages</span>
+      <input type="search" id="filter" placeholder="Filter by name or description  ( / )" autocomplete="off">
+    </label>
+    <div class="segmented" role="radiogroup" aria-label="Show" id="type-filter">
+      <button type="button" role="radio" data-type="all" aria-checked="true">All</button>
+      <button type="button" role="radio" data-type="formula" aria-checked="false">Formulae</button>
+      <button type="button" role="radio" data-type="cask" aria-checked="false">Casks</button>
+      <button type="button" role="radio" data-type="outdated" aria-checked="false">Outdated</button>
+    </div>
+    <label class="sort">
+      Sort
+      <select id="sort">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </label>
+    <button type="button" class="chip" id="year-chip" hidden></button>
+  </div>
+
+  <main class="layout">
+    <div class="list-wrap">
+      <table class="list">
+        <thead>
+          <tr><th>Name</th><th>Version</th><th class="col-desc">Description</th><th>Installed</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="empty" id="empty" hidden></p>
+    </div>
+    <aside class="details" id="details" aria-live="polite">
+      <p class="details-empty">Select a package to see its details, dependencies, and actions.</p>
+    </aside>
+  </main>
+
+  <section class="console" id="console" hidden aria-label="brew output">
+    <div class="console-bar">
+      <span class="console-status" id="console-status"></span>
+      <button type="button" class="btn btn-quiet" id="console-close">Close</button>
+    </div>
+    <pre class="console-log" id="console-log"></pre>
+  </section>
+
+  <dialog id="confirm" class="dialog">
+    <form method="dialog">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-body"></p>
+      <code class="cmd" id="confirm-cmd"></code>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn btn-quiet">Cancel</button>
+        <button value="ok" class="btn" id="confirm-ok"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="add" class="dialog dialog-wide">
+    <form method="dialog" class="add-form">
+      <h2>Add a package</h2>
+      <label class="search">
+        <span class="visually-hidden">Search Homebrew</span>
+        <input type="search" id="add-query" placeholder="Search Homebrew formulae and casks" autocomplete="off">
+      </label>
+      <div class="add-results" id="add-results"></div>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn btn-quiet">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

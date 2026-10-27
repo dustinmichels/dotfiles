@@ -6,7 +6,7 @@
 
   // ----- EDITOR CONFIGURATION -----
   "editor.defaultFormatter": "oxc.oxc-vscode",
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "editor.fontFamily": "FiraCode Nerd Font",
   "editor.fontLigatures": true,
   "editor.letterSpacing": 1,
@@ -17,7 +17,7 @@
   // ----- JUPYTER & NOTEBOOK CONFIGURATION -----
   "notebook.formatOnSave.enabled": true,
   "notebook.codeActionsOnSave": {
-    "notebook.source.organizeImports.ruff": "always"
+    "notebook.source.organizeImports.ruff": "explicit",
   },
 
   // ----- RUFF CONFIGURATION -----
@@ -30,13 +30,13 @@
     "*.ts": "${capture}.js, ${capture}.typegen.ts",
     "*.tsx": "${capture}.ts, ${capture}.typegen.ts",
     "*.mts": "${capture}.typegen.ts",
-    "*.cts": "${capture}.typegen.ts"
+    "*.cts": "${capture}.typegen.ts",
   },
   "files.associations": {
     ".env*": "properties",
     ".Brewfile*": "shellscript",
     ".zshrc.local": "shellscript",
-    ".shopifyignore": "ignore"
+    ".shopifyignore": "ignore",
   },
   "files.exclude": {
     "**/__pycache__": true,
@@ -45,7 +45,7 @@
     "**/.pytest_cache": true,
     "**/.nox": true,
     "**/.idea": true,
-    "**/.obsidian": true
+    "**/.obsidian": true,
   },
 
   // ----- TERMINAL -----
@@ -55,7 +55,7 @@
   "git.autofetch": true,
   "github.copilot.enable": {
     "markdown": true,
-    "json": false
+    "json": false,
   },
   "github.copilot.nextEditSuggestions.enabled": true,
   "go.toolsManagement.autoUpdate": true,
@@ -72,64 +72,64 @@
     "Somerville",
     "wavefile",
     "webchat",
-    "Websockets"
+    "Websockets",
   ],
 
   // ----- LANGUAGE SPECIFIC -----
   "[go]": {
-    "editor.defaultFormatter": "golang.go"
+    "editor.defaultFormatter": "golang.go",
   },
   "[html]": {
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
   },
   "[javascript]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.oxc": "explicit"
-    }
+      "source.organizeImports.oxc": "explicit",
+    },
   },
   "[javascriptreact]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.oxc": "explicit"
-    }
+      "source.organizeImports.oxc": "explicit",
+    },
   },
   "[typescript]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.oxc": "explicit"
-    }
+      "source.organizeImports.oxc": "explicit",
+    },
   },
   "[typescriptreact]": {
     "editor.tabSize": 2,
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.oxc": "explicit"
-    }
+      "source.organizeImports.oxc": "explicit",
+    },
   },
   "[markdown]": {
     "editor.quickSuggestions": {
       "other": "on",
       "comments": "on",
-      "strings": "on"
-    }
+      "strings": "on",
+    },
   },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.ruff": "always"
-    }
+      "source.organizeImports.ruff": "always",
+    },
   },
   "[shellscript]": {
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
   },
   "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
   },
   "[liquid]": {
-    "editor.defaultFormatter": "Shopify.theme-check-vscode"
-  }
+    "editor.defaultFormatter": "Shopify.theme-check-vscode",
+  },
 }

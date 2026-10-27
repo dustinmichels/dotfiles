@@ -266,29 +266,26 @@ type brewFinishedMsg struct {
 	err      error
 }
 
-func runBrewCommand(action string, item *PackageItem) tea.Cmd {
-	var brewArgs []string
-	if action == "upgrade" {
-		brewArgs = []string{"upgrade"}
-		if item.Type == "cask" {
-			brewArgs = append(brewArgs, "--cask")
-		}
-		brewArgs = append(brewArgs, item.Name)
-	} else {
-		brewArgs = []string{"uninstall"}
-		if item.Type == "cask" {
-			brewArgs = append(brewArgs, "--cask")
-		}
-		brewArgs = append(brewArgs, item.Name)
+// brewArgs builds the brew argv for a package action ("install", "upgrade", "uninstall").
+// Installs pin the type so a name that exists as both a formula and a cask is unambiguous.
+func brewArgs(action, pkgType, name string) []string {
+	args := []string{action}
+	if pkgType == "cask" {
+		args = append(args, "--cask")
+	} else if action == "install" {
+		args = append(args, "--formula")
 	}
+	return append(args, name)
+}
 
+func runBrewCommand(action string, item *PackageItem) tea.Cmd {
 	var shScript string
 	if action == "uninstall" {
 		shScript = `brew "$@"; rc=$?; if [ $rc -ne 0 ]; then echo; read -r -p "Press Enter to return to brew-ls..." _; fi; exit $rc`
 	} else {
 		shScript = `brew "$@"; rc=$?; echo; read -r -p "Press Enter to return to brew-ls..." _; exit $rc`
 	}
-	args := append([]string{"-c", shScript, "_"}, brewArgs...)
+	args := append([]string{"-c", shScript, "_"}, brewArgs(action, item.Type, item.Name)...)
 	c := exec.Command("sh", args...)
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
@@ -1248,12 +1245,23 @@ func main() {
 		flagJSON    = flag.Bool("json", false, "Output JSON without TUI")
 		flagReverse = flag.Bool("reverse", false, "Sort oldest first (in plain mode)")
 		flagR       = flag.Bool("r", false, "Sort oldest first (shorthand)")
+		flagWeb     = flag.Bool("web", false, "Serve the web UI on localhost instead of the TUI")
+		flagPort    = flag.Int("port", 4747, "Port for --web")
+		flagNoOpen  = flag.Bool("no-open", false, "With --web, don't open the browser")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: brew-ls [OPTIONS]\n\nInteractive TUI table of manually installed Homebrew packages with initial install date.\n\nOptions:\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if *flagWeb {
+		if err := runWeb(*flagPort, !*flagNoOpen); err != nil {
+			fmt.Fprintf(os.Stderr, "Error running web UI: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	isTTY := term.IsTerminal(int(os.Stdout.Fd()))
 
