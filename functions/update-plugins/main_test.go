@@ -3,271 +3,189 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
+
+func writeSkill(t *testing.T, dir, body string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestParsePluginScopeEntries(t *testing.T) {
-	// Array case
-	arrJSON := []byte(`[
-		{"scope":"user","installPath":"/path/to/v1","version":"1.0.0","gitCommitSha":"abc123"},
-		{"scope":"project","installPath":"/path/to/v2","version":"2.0.0","gitCommitSha":"def456"}
-	]`)
-	entries := parsePluginScopeEntries(arrJSON)
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
+	list := parsePluginScopeEntries([]byte(`[
+		{"scope":"user","version":"1.0.0"},
+		{"scope":"project","version":"2.0.0"}
+	]`))
+	if len(list) != 2 || list[1].Version != "2.0.0" {
+		t.Fatalf("array form: got %+v", list)
 	}
-	if entries[0].Version != "1.0.0" || entries[1].Version != "2.0.0" {
-		t.Errorf("unexpected entry versions: %+v", entries)
+	single := parsePluginScopeEntries([]byte(`{"scope":"user","version":"1.0.0"}`))
+	if len(single) != 1 || single[0].Version != "1.0.0" {
+		t.Fatalf("object form: got %+v", single)
 	}
-
-	// Single object case
-	objJSON := []byte(`{"scope":"user","installPath":"/path/to/v1","version":"1.0.0","gitCommitSha":"abc123"}`)
-	entries = parsePluginScopeEntries(objJSON)
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(entries))
-	}
-	if entries[0].Version != "1.0.0" {
-		t.Errorf("unexpected entry version: %+v", entries[0])
-	}
-
-	// Invalid case
-	invalidJSON := []byte(`"not-an-object"`)
-	entries = parsePluginScopeEntries(invalidJSON)
-	if len(entries) != 0 {
-		t.Errorf("expected 0 entries for invalid JSON, got %d", len(entries))
+	if got := parsePluginScopeEntries([]byte(`"nope"`)); len(got) != 0 {
+		t.Fatalf("invalid form: got %+v", got)
 	}
 }
 
-func TestGetPluginFingerprint(t *testing.T) {
-	tmpDir := t.TempDir()
-	claudeDir := filepath.Join(tmpDir, ".claude", "plugins")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-
-	mockContent := `{
-		"version": 2,
-		"plugins": {
-			"test-plugin@market": [
-				{
-					"scope": "user",
-					"installPath": "/cache/test-plugin/1.0.0",
-					"version": "1.0.0",
-					"gitCommitSha": "sha1"
-				}
-			]
-		}
-	}`
-	if err := os.WriteFile(filepath.Join(claudeDir, "installed_plugins.json"), []byte(mockContent), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
-	}
-
-	fp := getPluginFingerprint(tmpDir, "test-plugin@market")
-	expected := "user|1.0.0|sha1|/cache/test-plugin/1.0.0"
-	if fp != expected {
-		t.Errorf("expected fingerprint %q, got %q", expected, fp)
-	}
-
-	// Unknown plugin returns empty string
-	fpMissing := getPluginFingerprint(tmpDir, "nonexistent@market")
-	if fpMissing != "" {
-		t.Errorf("expected empty fingerprint for nonexistent plugin, got %q", fpMissing)
+func TestPluginVersionPrefersUserScope(t *testing.T) {
+	entries := []pluginScopeEntry{{Scope: "project", Version: "2.0.0"}, {Scope: "user", Version: "1.0.0"}}
+	if v := pluginVersion(entries); v != "1.0.0" {
+		t.Fatalf("got %q, want user-scope 1.0.0", v)
 	}
 }
 
-func TestPluginFingerprint(t *testing.T) {
-	tmpDir := t.TempDir()
-	claudeDir := filepath.Join(tmpDir, ".claude", "plugins")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
+func TestPluginFingerprintDetectsCommitOnlyChange(t *testing.T) {
+	before := []pluginScopeEntry{{Scope: "user", Version: "1.0.0", GitCommitSha: "a", InstallPath: "/p"}}
+	after := []pluginScopeEntry{{Scope: "user", Version: "1.0.0", GitCommitSha: "b", InstallPath: "/p"}}
+	if pluginFingerprint(before) == pluginFingerprint(after) {
+		t.Fatal("same version but new commit must count as updated")
 	}
-
-	// Format validation: scope|version|gitCommitSha|installPath
-	mockContent := `{
-		"version": 2,
-		"plugins": {
-			"ponytail@ponytail": [
-				{
-					"scope": "user",
-					"installPath": "/Users/test/.claude/plugins/cache/ponytail/1.2.3",
-					"version": "1.2.3",
-					"gitCommitSha": "deadbeef1234"
-				}
-			]
-		}
-	}`
-	if err := os.WriteFile(filepath.Join(claudeDir, "installed_plugins.json"), []byte(mockContent), 0644); err != nil {
-		t.Fatalf("failed to write installed_plugins.json: %v", err)
-	}
-
-	fp := getPluginFingerprint(tmpDir, "ponytail@ponytail")
-	expected := "user|1.2.3|deadbeef1234|/Users/test/.claude/plugins/cache/ponytail/1.2.3"
-	if fp != expected {
-		t.Errorf("fingerprint mismatch:\n  expected: %q\n  got:      %q", expected, fp)
+	reordered := []pluginScopeEntry{{Scope: "project", Version: "2"}, before[0]}
+	if pluginFingerprint(reordered) != pluginFingerprint([]pluginScopeEntry{before[0], {Scope: "project", Version: "2"}}) {
+		t.Fatal("scope order must not affect the fingerprint")
 	}
 }
 
-func TestStatusReportingLogic(t *testing.T) {
-	// Scenario 1: Same fingerprint before and after -> Up-to-date
-	beforeFP := "user|1.0.0|sha1|/path/1.0.0"
-	afterFP := "user|1.0.0|sha1|/path/1.0.0"
-	if beforeFP != afterFP {
-		t.Errorf("expected fingerprints to match")
-	}
-
-	// Scenario 2: Differing fingerprint -> Updated
-	updatedFP := "user|1.1.0|sha2|/path/1.1.0"
-	if beforeFP == updatedFP {
-		t.Errorf("expected fingerprints to differ on update")
+func TestChangedSkills(t *testing.T) {
+	before := skillLock{Skills: map[string]lockEntry{"same": {"r", "h1"}, "bumped": {"r", "h1"}}}
+	after := skillLock{Skills: map[string]lockEntry{"same": {"r", "h1"}, "bumped": {"r", "h2"}, "new": {"r", "h3"}}}
+	got := sortedKeys(changedSkills(before, after))
+	if !slices.Equal(got, []string{"bumped", "new"}) {
+		t.Fatalf("got %v", got)
 	}
 }
 
-func TestGetFileHash(t *testing.T) {
-	tmpDir := t.TempDir()
-	filePath := filepath.Join(tmpDir, "SKILL.md")
-	content := "test skill content"
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
+func TestReconcileSpokeHealsPrunesAndKeepsCopies(t *testing.T) {
+	tmp := t.TempDir()
+	hubPath := filepath.Join(tmp, "hub")
+	for _, s := range []string{"alpha", "beta", "gamma"} {
+		writeSkill(t, filepath.Join(hubPath, s), "# "+s)
+	}
+	spoke := filepath.Join(tmp, "spoke")
+	writeSkill(t, filepath.Join(spoke, "alpha"), "# alpha copy") // installer-made copy
+	writeSkill(t, filepath.Join(spoke, "mine"), "# local")       // spoke-only skill
+	if err := os.Symlink(filepath.Join(tmp, "gone"), filepath.Join(spoke, "dead")); err != nil {
+		t.Fatal(err)
 	}
 
-	hash1 := getFileHash(filePath)
-	if hash1 == "" {
-		t.Fatal("expected non-empty hash")
-	}
-
-	// Identical content has identical hash
-	hash2 := getFileHash(filePath)
-	if hash1 != hash2 {
-		t.Errorf("expected hash1 == hash2, got %q != %q", hash1, hash2)
-	}
-
-	// Different content has different hash
-	if err := os.WriteFile(filePath, []byte("changed content"), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
-	}
-	hash3 := getFileHash(filePath)
-	if hash1 == hash3 {
-		t.Errorf("expected hash to change when content changes")
-	}
-
-	// Missing file returns empty string
-	if missing := getFileHash(filepath.Join(tmpDir, "nonexistent")); missing != "" {
-		t.Errorf("expected empty hash for missing file, got %q", missing)
-	}
-}
-
-func TestReconcileSymlinks(t *testing.T) {
-	tmpDir := t.TempDir()
-	hubDir := filepath.Join(tmpDir, "canonical-hub")
-	spoke1 := filepath.Join(tmpDir, "spoke-pi")
-	spoke2 := filepath.Join(tmpDir, "spoke-gemini")
-
-	// Create 3 skills in canonical hub
-	skills := []string{"skill-alpha", "skill-beta", "skill-gamma"}
-	for _, s := range skills {
-		skillDir := filepath.Join(hubDir, s)
-		if err := os.MkdirAll(skillDir, 0755); err != nil {
-			t.Fatalf("failed to create canonical skill %s: %v", s, err)
-		}
-		if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# "+s), 0644); err != nil {
-			t.Fatalf("failed to write SKILL.md: %v", err)
-		}
-	}
-
-	// Create spoke2 with skill-alpha already present as physical directory
-	if err := os.MkdirAll(filepath.Join(spoke2, "skill-alpha"), 0755); err != nil {
-		t.Fatalf("failed to create existing directory in spoke2: %v", err)
-	}
-
-	spokes := []SpokeConfig{
-		{AgentName: "pi", Dir: spoke1},
-		{AgentName: "gemini", Dir: spoke2},
-	}
-
-	stats, err := ReconcileSpokes(hubDir, spokes, false)
+	hub := hubSkills(hubPath)
+	rep, err := reconcileSpoke(hub, "pi", spoke, false)
 	if err != nil {
-		t.Fatalf("ReconcileSpokes failed: %v", err)
+		t.Fatal(err)
+	}
+	if !slices.Equal(rep.healed, []string{"beta", "gamma"}) {
+		t.Errorf("healed = %v", rep.healed)
+	}
+	if !slices.Equal(rep.pruned, []string{"dead"}) {
+		t.Errorf("pruned = %v", rep.pruned)
+	}
+	if !slices.Equal(rep.copies, []string{"alpha"}) || !slices.Equal(rep.local, []string{"mine"}) {
+		t.Errorf("copies = %v, local = %v", rep.copies, rep.local)
+	}
+	if data, err := os.ReadFile(filepath.Join(spoke, "beta", "SKILL.md")); err != nil || string(data) != "# beta" {
+		t.Errorf("healed link does not resolve to hub: %q %v", data, err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(spoke, "alpha", "SKILL.md")); string(data) != "# alpha copy" {
+		t.Error("existing copy must not be replaced")
+	}
+	if _, err := os.Lstat(filepath.Join(spoke, "dead")); !os.IsNotExist(err) {
+		t.Error("dangling link not removed")
 	}
 
-	// Spoke1 was missing all 3. Spoke2 was missing skill-beta and skill-gamma (skill-alpha was pre-existing dir).
-	// Total healed should be 3 + 2 = 5.
-	if stats.HealedCount != 5 {
-		t.Errorf("expected 5 healed skills, got %d (%v)", stats.HealedCount, stats.HealedNames)
-	}
-
-	// Verify all 3 skills in spoke1 are accessible and resolve to valid files
-	for _, s := range skills {
-		spokePath := filepath.Join(spoke1, s, "SKILL.md")
-		data, err := os.ReadFile(spokePath)
-		if err != nil {
-			t.Errorf("failed to read skill %s in spoke1: %v", s, err)
-		} else if string(data) != "# "+s {
-			t.Errorf("unexpected skill content in spoke1 for %s: %q", s, string(data))
-		}
-	}
-
-	// Verify spoke2 has all 3 skills
-	for _, s := range skills {
-		spokePath := filepath.Join(spoke2, s)
-		if _, err := os.Stat(spokePath); err != nil {
-			t.Errorf("expected skill %s in spoke2, stat failed: %v", s, err)
-		}
-	}
-
-	// Verify idempotency: running reconcile again yields 0 healed
-	secondStats, err := ReconcileSpokes(hubDir, spokes, false)
-	if err != nil {
-		t.Fatalf("second ReconcileSpokes failed: %v", err)
-	}
-	if secondStats.HealedCount != 0 {
-		t.Errorf("expected 0 healed on second pass, got %d", secondStats.HealedCount)
+	again, err := reconcileSpoke(hub, "pi", spoke, false)
+	if err != nil || len(again.healed)+len(again.pruned) != 0 {
+		t.Fatalf("second pass not idempotent: %+v %v", again, err)
 	}
 }
 
-func TestPruneDanglingSymlinks(t *testing.T) {
-	tmpDir := t.TempDir()
-	hubDir := filepath.Join(tmpDir, "canonical-hub")
-	spokeDir := filepath.Join(tmpDir, "spoke")
+func TestReconcileSpokeDryRunChangesNothing(t *testing.T) {
+	tmp := t.TempDir()
+	hubPath := filepath.Join(tmp, "hub")
+	writeSkill(t, filepath.Join(hubPath, "alpha"), "# alpha")
+	spoke := filepath.Join(tmp, "spoke")
 
-	// Create canonical skill
-	liveSkill := filepath.Join(hubDir, "skill-live")
-	if err := os.MkdirAll(liveSkill, 0755); err != nil {
-		t.Fatalf("failed to create live skill: %v", err)
+	rep, err := reconcileSpoke(hubSkills(hubPath), "pi", spoke, true)
+	if err != nil || !slices.Equal(rep.healed, []string{"alpha"}) {
+		t.Fatalf("dry run should report alpha: %+v %v", rep, err)
+	}
+	if exists(spoke) {
+		t.Fatal("dry run created the spoke dir")
+	}
+}
+
+func TestStaleCopiesSyncFromSource(t *testing.T) {
+	tmp := t.TempDir()
+	src := filepath.Join(tmp, "runtime", "skill")
+	writeSkill(t, src, "v2")
+	fresh := skillLoc{"claude", filepath.Join(tmp, "claude", "s")}
+	old := skillLoc{"pi", filepath.Join(tmp, "pi", "s")}
+	writeSkill(t, fresh.path, "v2")
+	writeSkill(t, old.path, "v1")
+
+	stale := staleCopies([]skillLoc{fresh, old}, dirHash(src))
+	if len(stale) != 1 || stale[0] != old {
+		t.Fatalf("stale = %v", stale)
+	}
+	if err := copyTree(src, old.path); err != nil {
+		t.Fatal(err)
+	}
+	if len(staleCopies([]skillLoc{fresh, old}, dirHash(src))) != 0 {
+		t.Fatal("copy still stale after sync")
+	}
+}
+
+func TestSkillCopiesSkipsSymlinks(t *testing.T) {
+	home := t.TempDir()
+	writeSkill(t, filepath.Join(hubDir(home), "s"), "x")
+	claude := filepath.Join(home, ".claude", "skills")
+	if err := os.MkdirAll(claude, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(hubDir(home), "s"), filepath.Join(claude, "s")); err != nil {
+		t.Fatal(err)
+	}
+	writeSkill(t, filepath.Join(home, ".pi", "agent", "skills", "s"), "x")
+
+	if got := labels(skillCopies(home, "s")); !slices.Equal(got, []string{"hub", "pi"}) {
+		t.Fatalf("copies = %v, want hub and pi (claude is a link)", got)
+	}
+}
+
+func TestLinkOmpSkills(t *testing.T) {
+	home := t.TempDir()
+	writeSkill(t, filepath.Join(hubDir(home), "s"), "x")
+
+	created, err := linkOmpSkills(home, false)
+	if err != nil || !created {
+		t.Fatalf("first link: created=%v err=%v", created, err)
+	}
+	if !exists(filepath.Join(ompSkillsDir(home), "s", "SKILL.md")) {
+		t.Fatal("omp skills dir does not resolve to hub")
+	}
+	if created, err = linkOmpSkills(home, false); err != nil || created {
+		t.Fatalf("second link: created=%v err=%v", created, err)
 	}
 
-	if err := os.MkdirAll(spokeDir, 0755); err != nil {
-		t.Fatalf("failed to create spoke dir: %v", err)
+	other := t.TempDir()
+	writeSkill(t, filepath.Join(ompSkillsDir(other), "s"), "x")
+	if _, err := linkOmpSkills(other, false); err == nil {
+		t.Fatal("a real omp skills dir must be reported, not replaced")
 	}
+}
 
-	// Create a dead symlink pointing to nonexistent path
-	deadLink := filepath.Join(spokeDir, "skill-deleted")
-	if err := os.Symlink(filepath.Join(tmpDir, "does-not-exist"), deadLink); err != nil {
-		t.Fatalf("failed to create dead symlink: %v", err)
+func TestParseOmpMarketplaces(t *testing.T) {
+	out := "Configured Marketplaces:\n\n  claude-plugins-official  anthropics/claude-plugins-official\n  mine  me/repo\n"
+	if got := parseOmpMarketplaces(out); !slices.Equal(got, []string{"claude-plugins-official", "mine"}) {
+		t.Fatalf("got %v", got)
 	}
-
-	spokes := []SpokeConfig{
-		{AgentName: "test-agent", Dir: spokeDir},
-	}
-
-	stats, err := ReconcileSpokes(hubDir, spokes, false)
-	if err != nil {
-		t.Fatalf("ReconcileSpokes failed: %v", err)
-	}
-
-	// Verify dead link was pruned
-	if stats.PrunedCount != 1 {
-		t.Errorf("expected 1 pruned link, got %d", stats.PrunedCount)
-	}
-
-	if _, err := os.Lstat(deadLink); !os.IsNotExist(err) {
-		t.Errorf("expected dead symlink to be removed, but it still exists")
-	}
-
-	// Verify live skill was healed/linked
-	if stats.HealedCount != 1 {
-		t.Errorf("expected 1 healed link, got %d", stats.HealedCount)
-	}
-	liveInSpoke := filepath.Join(spokeDir, "skill-live")
-	if _, err := os.Stat(liveInSpoke); err != nil {
-		t.Errorf("expected live skill in spoke, got stat error: %v", err)
+	if got := parseOmpMarketplaces("No marketplaces configured\n\nAdd one with: omp plugin marketplace add <source>"); len(got) != 0 {
+		t.Fatalf("got %v", got)
 	}
 }
