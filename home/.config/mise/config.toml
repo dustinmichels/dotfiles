@@ -1,6 +1,6 @@
 [tools]
 bun = "latest"
-cmake = "4.4.4"
+cmake = "4.4.5"
 duckdb = "latest"
 go = "latest"
 "go:golang.org/x/tools/gopls" = "latest"

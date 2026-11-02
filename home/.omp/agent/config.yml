@@ -1,10 +1,10 @@
 setupVersion: 2
 modelRoles:
   smol: google-antigravity/gemini-3.5-flash-lite
-  advisor: anthropic/claude-opus-5-5
+  advisor: google-antigravity/gemini-3.8-flash
   speech: local/kokoro
   judge: openrouter/~typesafe/jev-latest
-  default: anthropic/claude-opus-5-5
+  default: anthropic/claude-opus-5-5:high
 advisor:
   enabled: true
 retry:
@@ -18,3 +18,12 @@ composer:
 enabledProviders:
   - claude-plugins
 defaultThinkingLevel: high
+memory:
+  backend: hindsight
+hindsight:
+  apiUrl: http://127.0.0.1:9077
+  bankId: coding-agent
+  scoping: per-project
+  mentalModelAutoSeed: false
+compaction:
+  thresholdPercent: 40
