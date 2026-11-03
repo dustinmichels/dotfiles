@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -187,5 +188,49 @@ func TestParseOmpMarketplaces(t *testing.T) {
 	}
 	if got := parseOmpMarketplaces("No marketplaces configured\n\nAdd one with: omp plugin marketplace add <source>"); len(got) != 0 {
 		t.Fatalf("got %v", got)
+	}
+}
+
+func TestRefreshedAgents(t *testing.T) {
+	out := "  Claude Code: refreshed /h/.claude.json\n  Claude Code: refreshed /h/.claude/CLAUDE.md\n  Antigravity IDE: refreshed /h/.gemini/config/mcp_config.json\n"
+	if got := refreshedAgents(out); !slices.Equal(got, []string{"Claude Code", "Antigravity IDE"}) {
+		t.Fatalf("got %v", got)
+	}
+	if got := refreshedAgents("All configured agent surfaces are already current.\n"); len(got) != 0 {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestPinCommandRewritesOnlyCodegraphCommand(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "mcp_config.json")
+	orig := `{
+  "mcpServers": {
+    "codegraph": {
+      "command": "/m/installs/codegraph/1.6.2/bin/codegraph",
+      "args": ["serve", "--mcp"]
+    },
+    "mise": { "command": "/opt/homebrew/bin/mise", "args": ["mcp"] }
+  }
+}
+`
+	if err := os.WriteFile(file, []byte(orig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := pinCommand(file, "/m/shims/codegraph"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(file)
+	want := strings.Replace(orig, "/m/installs/codegraph/1.6.2/bin/codegraph", "/m/shims/codegraph", 1)
+	if string(data) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", data, want)
+	}
+	if fi, _ := os.Stat(file); fi.Mode().Perm() != 0o600 {
+		t.Errorf("mode changed to %v", fi.Mode().Perm())
+	}
+	if err := pinCommand(file, "/m/shims/codegraph"); err != nil {
+		t.Fatalf("second pin should be a no-op: %v", err)
+	}
+	if err := pinCommand(filepath.Join(t.TempDir(), "missing.json"), "/x"); err != nil {
+		t.Fatalf("missing config should be ignored: %v", err)
 	}
 }
