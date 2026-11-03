@@ -56,7 +56,13 @@ func (a *app) toolRows() []row {
 	if r, ok := a.browserUse(); ok {
 		rows = append(rows, r)
 	}
+	if r, ok := a.codegraph(); ok {
+		rows = append(rows, r)
+	}
 	if r, ok := a.hindsight(); ok {
+		rows = append(rows, r)
+	}
+	if r, ok := a.rtk(); ok {
 		rows = append(rows, r)
 	}
 	return rows

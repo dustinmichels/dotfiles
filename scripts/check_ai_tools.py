@@ -160,65 +160,61 @@ def main():
     # -------------------------------------------------------------
     print(f"{BOLD}4. Gemini / Antigravity{RESET}")
 
-    # RTK Hook script & test
-    gem_hook = os.path.expanduser("~/.gemini/hooks/rtk-hook-antigravity.py")
+    # RTK hook (native `rtk hook antigravity`, installed by `rtk init -g --agent antigravity`)
     gem_hook_ok = False
-    if os.path.exists(gem_hook) and os.access(gem_hook, os.X_OK):
-        try:
-            payload = json.dumps(
-                {
-                    "toolCall": {
-                        "name": "run_command",
-                        "args": {"CommandLine": "git status"},
-                    }
+    try:
+        payload = json.dumps(
+            {
+                "toolCall": {
+                    "name": "run_command",
+                    "args": {"CommandLine": "git status"},
                 }
-            )
-            res = subprocess.run(
-                [gem_hook],
-                input=payload,
-                text=True,
-                capture_output=True,
-                timeout=3,
-                check=False,
-            )
-            data = json.loads(res.stdout)
-            gem_hook_ok = (
-                data.get("overwrite", {}).get("CommandLine") == "rtk git status"
-            )
-            note = (
-                "rewriting CommandLine -> 'rtk git status'"
-                if gem_hook_ok
-                else f"unexpected output: {res.stdout.strip()[:60]}"
-            )
-        except (
-            subprocess.SubprocessError,
-            OSError,
-            json.JSONDecodeError,
-            AttributeError,
-        ) as e:
-            note = f"execution failed: {e}"
-    else:
-        note = "Script missing or not executable"
+            }
+        )
+        res = subprocess.run(
+            ["rtk", "hook", "antigravity"],
+            input=payload,
+            text=True,
+            capture_output=True,
+            timeout=3,
+            check=False,
+        )
+        data = json.loads(res.stdout)
+        gem_hook_ok = (
+            data.get("overwrite", {}).get("CommandLine") == "rtk git status"
+        )
+        note = (
+            "rewriting CommandLine -> 'rtk git status'"
+            if gem_hook_ok
+            else f"unexpected output: {res.stdout.strip()[:60]}"
+        )
+    except (
+        subprocess.SubprocessError,
+        OSError,
+        json.JSONDecodeError,
+        AttributeError,
+    ) as e:
+        note = f"execution failed: {e}"
     print(f"  RTK Hook           : {status_badge(gem_hook_ok, note)}")
 
-    # Antigravity hooks.json
-    gem_hooks_json = os.path.expanduser("~/.gemini/config/hooks.json")
+    # RTK Antigravity plugin
+    gem_plugin_hooks = os.path.expanduser("~/.gemini/config/plugins/rtk/hooks.json")
     hooks_registered = False
-    if os.path.exists(gem_hooks_json):
+    if os.path.exists(gem_plugin_hooks):
         try:
-            with open(gem_hooks_json) as f:
+            with open(gem_plugin_hooks) as f:
                 d = json.load(f)
             hooks_registered = "rtk-rewrite" in d
             note = (
-                "~/.gemini/config/hooks.json active"
+                "~/.gemini/config/plugins/rtk active"
                 if hooks_registered
-                else "rtk-rewrite not found in hooks.json"
+                else "rtk-rewrite not found in plugin hooks.json"
             )
         except (OSError, json.JSONDecodeError, TypeError) as e:
             note = f"JSON error: {e}"
     else:
-        note = "~/.gemini/config/hooks.json missing"
-    print(f"  RTK Hook Config    : {status_badge(hooks_registered, note)}")
+        note = "plugin missing (run: update-plugins --only tools)"
+    print(f"  RTK Plugin         : {status_badge(hooks_registered, note)}")
 
     # CodeGraph MCP in Antigravity
     gem_mcp = os.path.expanduser("~/.gemini/config/mcp_config.json")

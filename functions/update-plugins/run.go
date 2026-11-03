@@ -71,21 +71,27 @@ func read(bin string, args ...string) string {
 // mutate runs a state-changing command for row r. In dry-run it only records the command.
 // On failure it marks the row failed with the tail of the command output.
 func (a *app) mutate(r *row, timeout time.Duration, bin string, args ...string) bool {
+	ok, _ := a.mutateOut(r, timeout, bin, args...)
+	return ok
+}
+
+// mutateOut is mutate that also returns the command's combined output ("" in dry-run).
+func (a *app) mutateOut(r *row, timeout time.Duration, bin string, args ...string) (bool, string) {
 	line := cmdLine(bin, args)
 	if a.dryRun {
 		r.detail = append(r.detail, "↳ "+line)
 		r.raise(stPlanned)
-		return true
+		return true, ""
 	}
 	a.progress(r.name + ": " + line)
 	rc, out := a.run(timeout, bin, args...)
 	if rc == 0 {
-		return true
+		return true, out
 	}
 	r.raise(stFailed)
 	r.detail = append(r.detail, fmt.Sprintf("%s → exit %d", line, rc))
 	r.detail = append(r.detail, tailLines(out, 4)...)
-	return false
+	return false, out
 }
 
 func cmdLine(bin string, args []string) string {
