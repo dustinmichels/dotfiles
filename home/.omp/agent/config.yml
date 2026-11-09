@@ -1,4 +1,4 @@
-setupVersion: 2
+setupVersion: 3
 modelRoles:
   smol: google-antigravity/gemini-3.5-flash-lite
   advisor: google-antigravity/gemini-3.8-flash
@@ -27,3 +27,5 @@ hindsight:
   mentalModelAutoSeed: false
 compaction:
   thresholdPercent: 40
+update:
+  auto: true

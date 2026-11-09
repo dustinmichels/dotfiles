@@ -191,6 +191,18 @@ func TestParseOmpMarketplaces(t *testing.T) {
 	}
 }
 
+func TestOmpUpgradeChanged(t *testing.T) {
+	newRev := "Resolving dependencies\n{\n  \"upgraded\": \"x\",\n  \"from\": \"0.1.0\",\n  \"to\": \"0.1.0\",\n  \"changed\": true\n}\n"
+	if !ompUpgradeChanged(newRev) {
+		t.Fatal("a new git revision at the same version must count as changed")
+	}
+	for _, out := range []string{`{"upgraded": "x", "changed": false}`, "", "error: not json"} {
+		if ompUpgradeChanged(out) {
+			t.Fatalf("%q reported as changed", out)
+		}
+	}
+}
+
 func TestRefreshedAgents(t *testing.T) {
 	out := "  Claude Code: refreshed /h/.claude.json\n  Claude Code: refreshed /h/.claude/CLAUDE.md\n  Antigravity IDE: refreshed /h/.gemini/config/mcp_config.json\n"
 	if got := refreshedAgents(out); !slices.Equal(got, []string{"Claude Code", "Antigravity IDE"}) {

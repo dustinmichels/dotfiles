@@ -17,7 +17,7 @@ each one through its own installer so the change reaches every agent.
 | **Skill links** | `~/.claude/skills`, `~/.pi/agent/skills`, `~/.gemini/config/skills`, `~/.omp/agent/skills` | Adds a symlink for each missing hub skill and removes dead links. omp links the whole dir to the hub. Reports copies that differ from the hub. |
 | **Claude plugins** | marketplaces, installed plugins, orphaned deps | `claude plugin marketplace update`, `claude plugin update <id>`. With `-y` it also runs `claude plugin prune`. |
 | **Codex plugins** | marketplaces, installed plugins by marketplace | `codex plugin marketplace upgrade` for git marketplaces. App-bundled plugins update with Codex. |
-| **omp plugins** | marketplaces, installed plugins | `omp plugin marketplace update`, `omp plugin upgrade` |
+| **omp plugins** | marketplaces, installed plugins | `omp plugin marketplace update`. Marketplace plugins: `omp plugin upgrade`. npm and git plugins (e.g. TokenEconomizer), which that skips: `omp plugin upgrade <name>` each, so a git plugin also picks up new commits that keep the same version. |
 
 Row markers: `↑` updated, `✓` current, `○` would update (dry run), `!` needs attention, `✖` failed, `·` inventory only.
 Command output stays hidden unless a command fails, in which case its last lines are shown. Use `-v` to stream all output.

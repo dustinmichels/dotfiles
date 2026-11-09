@@ -278,20 +278,53 @@ func (a *app) ompPluginRows() []row {
 		return append(rows, row{st: stInfo, name: "plugins", note: "none installed"})
 	}
 
-	ur := row{}
-	ok := a.mutate(&ur, quick, omp, "plugin", "upgrade")
-	after := before
-	if ok && !a.dryRun {
-		after, _ = list()
-	}
+	// Bare `omp plugin upgrade` covers marketplace plugins only. npm and git installs (the "npm"
+	// group) upgrade one at a time by name; a git install can move to a new commit without a
+	// version bump, so its own `changed` flag is what reports that update.
+	start := len(rows)
+	marketplace := -1 // first marketplace plugin row; carries the bare upgrade's output
 	for _, name := range sortedKeys(before) {
-		r := row{st: stCurrent, name: name, version: versionChange(before[name].Version, after[name].Version), via: kind[name]}
-		r.raise(ur.st)
-		if after[name].Version != before[name].Version {
+		r := row{st: stCurrent, name: name, via: kind[name]}
+		if kind[name] == "marketplace" {
+			if marketplace < 0 {
+				marketplace = len(rows)
+			}
+		} else if ok, out := a.mutateOut(&r, slow, omp, "plugin", "upgrade", name, "--json"); ok && ompUpgradeChanged(out) {
 			r.raise(stUpdated)
 		}
 		rows = append(rows, r)
 	}
-	rows[1].detail = ur.detail
+	if marketplace >= 0 {
+		ur := row{}
+		a.mutate(&ur, quick, omp, "plugin", "upgrade")
+		rows[marketplace].detail = ur.detail
+		for i := start; i < len(rows); i++ {
+			if rows[i].via == "marketplace" {
+				rows[i].raise(ur.st)
+			}
+		}
+	}
+
+	after := before
+	if !a.dryRun {
+		after, _ = list()
+	}
+	for i := start; i < len(rows); i++ {
+		b, n := before[rows[i].name].Version, after[rows[i].name].Version
+		rows[i].version = versionChange(b, n)
+		if n != "" && n != b {
+			rows[i].raise(stUpdated)
+		}
+	}
 	return rows
+}
+
+// ompUpgradeChanged reads the `changed` flag from `omp plugin upgrade <name> --json`, whose
+// JSON object may be surrounded by other output.
+func ompUpgradeChanged(out string) bool {
+	var res struct {
+		Changed bool `json:"changed"`
+	}
+	i, j := strings.Index(out, "{"), strings.LastIndex(out, "}")
+	return i >= 0 && j > i && json.Unmarshal([]byte(out[i:j+1]), &res) == nil && res.Changed
 }
