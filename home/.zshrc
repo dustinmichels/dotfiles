@@ -107,3 +107,6 @@ export PATH="$PATH:$HOME/.bun/bin"
 
 # Mole shell completion
 if output="$(mole completion zsh 2>/dev/null)"; then eval "$output"; fi
+
+# Machine-local overrides (not tracked)
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local
