@@ -180,9 +180,7 @@ def main():
             check=False,
         )
         data = json.loads(res.stdout)
-        gem_hook_ok = (
-            data.get("overwrite", {}).get("CommandLine") == "rtk git status"
-        )
+        gem_hook_ok = data.get("overwrite", {}).get("CommandLine") == "rtk git status"
         note = (
             "rewriting CommandLine -> 'rtk git status'"
             if gem_hook_ok
@@ -216,10 +214,17 @@ def main():
         note = "plugin missing (run: update-plugins --only tools)"
     print(f"  RTK Plugin         : {status_badge(hooks_registered, note)}")
 
-    # CodeGraph MCP in Antigravity
-    gem_mcp = os.path.expanduser("~/.gemini/config/mcp_config.json")
+    # CodeGraph MCP in Antigravity (config dir differs between installs)
+    gem_mcps = [
+        os.path.expanduser(p)
+        for p in (
+            "~/.gemini/config/mcp_config.json",
+            "~/.gemini/antigravity/mcp_config.json",
+        )
+    ]
+    gem_mcp = next((p for p in gem_mcps if os.path.exists(p)), None)
     gem_mcp_ok = False
-    if os.path.exists(gem_mcp):
+    if gem_mcp:
         try:
             with open(gem_mcp) as f:
                 d = json.load(f)
@@ -232,7 +237,9 @@ def main():
         except (OSError, json.JSONDecodeError, AttributeError) as e:
             note = f"JSON error: {e}"
     else:
-        note = "~/.gemini/config/mcp_config.json missing"
+        note = (
+            "no Antigravity mcp_config.json (~/.gemini/config or ~/.gemini/antigravity)"
+        )
     print(f"  CodeGraph MCP      : {status_badge(gem_mcp_ok, note)}")
 
     print(f"\n{BOLD}{CYAN}======================================{RESET}\n")

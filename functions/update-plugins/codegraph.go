@@ -12,16 +12,27 @@ import (
 
 const codegraphMiseTool = "npm:@colbymchenry/codegraph"
 
+// antigravityConfigs lists where Antigravity keeps its MCP config; the location differs between
+// installs (~/.gemini/config on some, ~/.gemini/antigravity on others).
+func antigravityConfigs(home string) []string {
+	return []string{
+		filepath.Join(home, ".gemini", "config", "mcp_config.json"),
+		filepath.Join(home, ".gemini", "antigravity", "mcp_config.json"),
+	}
+}
+
 // codegraphWiring lists where each agent registers the codegraph MCP server.
 // omp is wired by hand (dotfiles mcp.json); `codegraph install` has no omp target.
 func codegraphWiring(home string) []struct{ agent, label, file string } {
-	return []struct{ agent, label, file string }{
+	wiring := []struct{ agent, label, file string }{
 		{"claude", "claude", filepath.Join(home, ".claude.json")},
 		{"codex", "codex", filepath.Join(home, ".codex", "config.toml")},
 		{"gemini", "gemini-cli", filepath.Join(home, ".gemini", "settings.json")},
-		{"gemini", "antigravity", filepath.Join(home, ".gemini", "config", "mcp_config.json")},
-		{"omp", "omp (manual)", filepath.Join(home, ".omp", "agent", "mcp.json")},
 	}
+	for _, f := range antigravityConfigs(home) {
+		wiring = append(wiring, struct{ agent, label, file string }{"gemini", "antigravity", f})
+	}
+	return append(wiring, struct{ agent, label, file string }{"omp", "omp (manual)", filepath.Join(home, ".omp", "agent", "mcp.json")})
 }
 
 func hasCodegraphMCP(file string) bool {
@@ -86,7 +97,7 @@ func (a *app) codegraph() (row, bool) {
 
 	var wired []string
 	for _, w := range codegraphWiring(a.home) {
-		if a.agents[w.agent] && hasCodegraphMCP(w.file) {
+		if a.agents[w.agent] && hasCodegraphMCP(w.file) && !slices.Contains(wired, w.label) {
 			wired = append(wired, w.label)
 		}
 	}
@@ -95,21 +106,31 @@ func (a *app) codegraph() (row, bool) {
 		return r, true
 	}
 	// The refresh is global: it covers every agent codegraph configured, regardless of --agents.
-	agy := filepath.Join(a.home, ".gemini", "config", "mcp_config.json")
-	agyBefore := codegraphEntry(agy)
+	agys := antigravityConfigs(a.home)
+	agyBefore := make([]string, len(agys))
+	for i, f := range agys {
+		agyBefore[i] = codegraphEntry(f)
+	}
 	refreshed, out := a.mutateOut(&r, quick, bin, "install", "--refresh", "-l", "global")
 	if shim != "" {
 		if a.dryRun {
 			r.detail = append(r.detail, "↳ pin antigravity's codegraph command to the mise shim")
-		} else if err := pinCommand(agy, shim); err != nil {
-			r.raise(stWarn)
-			r.addNote("antigravity: " + err.Error())
+		} else {
+			for _, f := range agys {
+				if err := pinCommand(f, shim); err != nil {
+					r.raise(stWarn)
+					r.addNote("antigravity: " + err.Error())
+				}
+			}
 		}
 	}
 	if refreshed && !a.dryRun {
 		agents := slices.DeleteFunc(refreshedAgents(out), func(s string) bool { return s == "Antigravity IDE" })
-		if codegraphEntry(agy) != agyBefore {
-			agents = append(agents, "Antigravity IDE")
+		for i, f := range agys {
+			if codegraphEntry(f) != agyBefore[i] {
+				agents = append(agents, "Antigravity IDE")
+				break
+			}
 		}
 		if len(agents) > 0 {
 			r.raise(stUpdated)
