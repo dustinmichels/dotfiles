@@ -108,5 +108,9 @@ export PATH="$PATH:$HOME/.bun/bin"
 # Mole shell completion
 if output="$(mole completion zsh 2>/dev/null)"; then eval "$output"; fi
 
+# Keep the Hindsight daemon on ChatGPT instead of auto-detecting Claude Code.
+export HINDSIGHT_API_LLM_PROVIDER=chatgpt
+
 # Machine-local overrides (not tracked)
 [ -f ~/.zshrc.local ] && source ~/.zshrc.local
+

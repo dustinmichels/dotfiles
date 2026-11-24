@@ -1,10 +1,10 @@
 setupVersion: 3
 modelRoles:
-  smol: google-antigravity/gemini-3.5-flash-lite
-  advisor: google-antigravity/gemini-3.8-flash
-  speech: local/kokoro
+  smol: anthropic/claude-opus-4-8
+  advisor: anthropic/claude-opus-5-5
+  speech: local/phonon-31m
   judge: openrouter/~typesafe/jev-latest
-  default: anthropic/claude-opus-5-5:high
+  default: anthropic/claude-opus-5-5:medium
 advisor:
   enabled: true
 retry:
@@ -12,7 +12,8 @@ retry:
 dev:
   autoqaConsent: granted
 codexResets:
-  autoRedeem: "yes"
+  autoRedeem5h: "yes"
+  autoRedeemWeekly: "yes"
 composer:
   shape: box
 enabledProviders:
