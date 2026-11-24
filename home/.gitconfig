@@ -16,7 +16,7 @@ helper = cache
 autoSetupRemote = true
 
 [alias]
-ls = log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h - %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d'
+ls = "!f() { me=$(git config user.name); git log --graph --abbrev-commit --decorate --all --color=always --date=relative --format=format:'%C(bold blue)%h %C(bold green)(%ar) %C(reset)%s - %C(magenta)%an%C(bold yellow)%d' \"$@\" | sed -E -e 's/ weeks? ago\\)/ wk ago)/; s/ hours? ago\\)/ hr ago)/; s/ seconds? ago\\)/ sec ago)/' -e \"s/(\\x1b\\[35m)$me(\\x1b)/\\1Me\\2/\" | less -RFX; }; f"
 last = log -1 HEAD
 co = checkout
 br = branch
